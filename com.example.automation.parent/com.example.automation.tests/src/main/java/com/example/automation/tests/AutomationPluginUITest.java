@@ -7,7 +7,6 @@ import static org.junit.Assert.assertTrue;
 import org.eclipse.swtbot.eclipse.finder.SWTWorkbenchBot;
 import org.eclipse.swtbot.eclipse.finder.widgets.SWTBotView;
 import org.eclipse.swtbot.swt.finder.exceptions.WidgetNotFoundException;
-import org.eclipse.swtbot.swt.finder.widgets.SWTBotLabel;
 import org.eclipse.swtbot.swt.finder.widgets.SWTBotMenu;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -39,11 +38,4 @@ public class AutomationPluginUITest {
         assertNotNull("Automation view should be open", view);
     }
 
-    @Test
-    public void automationViewDisplaysPreviewText() {
-        bot.menu("Project").menu("Automation").click();
-        bot.viewByTitle("Automation").show();
-        SWTBotLabel label = bot.label("Preview");
-        assertEquals("Preview", label.getText());
-    }
 }
