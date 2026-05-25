@@ -2,6 +2,11 @@
 <?eclipse version="3.4"?>
 <plugin>
 
+  <extension-point
+      id="actions"
+      name="Automation Actions"
+      schema="schema/actions.exsd"/>
+
   <extension point="org.eclipse.ui.views">
     <view
         id="com.example.automation.view"
