@@ -4,6 +4,15 @@
     label="Automation"
     version="1.0.0.qualifier">
 
+  <description>
+    Adds an &quot;Automation&quot; item to the Project menu.
+    Clicking it opens the Automation view.
+  </description>
+
+  <copyright>
+    Copyright 2026 com.example
+  </copyright>
+
   <plugin
       id="com.example.automation"
       download-size="0"
