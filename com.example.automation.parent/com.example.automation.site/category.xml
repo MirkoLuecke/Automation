@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<site>
+  <feature
+      url="features/com.example.automation.feature_1.0.0.qualifier.jar"
+      id="com.example.automation.feature"
+      version="1.0.0.qualifier">
+    <category name="com.example.automation.category"/>
+  </feature>
+  <category-def name="com.example.automation.category" label="Automation"/>
+</site>
