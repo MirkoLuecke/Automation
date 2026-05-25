@@ -5,7 +5,6 @@ Bundle-SymbolicName: com.example.automation.tests
 Bundle-Version: 1.0.0.qualifier
 Require-Bundle: com.example.automation,
  org.eclipse.swtbot.eclipse.finder,
- org.eclipse.swtbot.swt.finder,
  org.junit,
  org.hamcrest.core
 Bundle-RequiredExecutionEnvironment: JavaSE-17
