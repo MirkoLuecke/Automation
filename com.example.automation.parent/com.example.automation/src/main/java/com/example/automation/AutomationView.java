@@ -225,7 +225,7 @@ public class AutomationView extends ViewPart {
     private void save() {
         try {
             new WorkflowRepository().save(currentWorkflow);
-        } catch (IOException e) {
+        } catch (Exception e) {
             Platform.getLog(getClass()).error("Failed to save workflow", e);
         }
     }
