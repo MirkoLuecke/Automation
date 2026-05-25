@@ -46,7 +46,9 @@ public class StepLabelProvider {
         }
 
         @Override
-        protected void measure(Event event, Object element) {}
+        protected void measure(Event event, Object element) {
+            event.height = Math.max(event.height, SQUARE + 4);
+        }
 
         @Override
         protected void erase(Event event, Object element) {
@@ -57,10 +59,12 @@ public class StepLabelProvider {
         protected void paint(Event event, Object element) {
             Step step = (Step) element;
             GC gc = event.gc;
+            Color prev = gc.getBackground();
             gc.setBackground(colorFor(step.getStatus()));
             int x = event.x + (event.width  - SQUARE) / 2;
             int y = event.y + (event.height - SQUARE) / 2;
             gc.fillRectangle(x, y, SQUARE, SQUARE);
+            gc.setBackground(prev);
         }
 
         private Color colorFor(StepStatus status) {
@@ -88,7 +92,7 @@ public class StepLabelProvider {
         @Override
         public String getText(Object element) {
             Map<String, String> cfg = ((Step) element).getConfig();
-            if (cfg.isEmpty()) return "";
+            if (cfg == null || cfg.isEmpty()) return "";
             String text = cfg.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
                 .map(e -> e.getKey() + "=" + e.getValue())
