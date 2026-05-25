@@ -18,6 +18,7 @@ public class ActionRegistry {
     private final Map<String, IAction> actionsById;
     private final List<IAction> allActions;
 
+    /** For unit testing only. Production code must use {@link #getInstance()}. */
     public ActionRegistry(List<IAction> actions) {
         Map<String, IAction> map = new LinkedHashMap<>();
         for (IAction action : actions) {
