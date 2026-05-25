@@ -1,4 +1,4 @@
-# Gear Icon for Menu Item and View — Design Spec
+# Gear Icon and Feature Documentation — Design Spec
 
 **Date:** 2026-05-25
 **Status:** Approved
@@ -7,7 +7,12 @@
 
 ## Overview
 
-Add the Eclipse standard gear icon (`configs.png`) to both the "Automation" menu item in the Project menu and the "Automation" ViewPart tab. The icon is extracted from Eclipse's own `org.eclipse.ui.ide` plugin and bundled inside the `com.example.automation` plugin for self-containment.
+Two changes:
+
+1. Add the Eclipse standard gear icon (`configs.png`) to both the "Automation" menu item in the Project menu and the "Automation" ViewPart tab.
+2. Add a `<description>` and `<copyright>` to `feature.xml` so users see meaningful text in the "Install New Software" wizard when installing from the update site.
+
+No license acceptance step is added — this is an internal plugin.
 
 ---
 
@@ -33,6 +38,7 @@ The `elcl16` variant is used because our menu item is always enabled; the `dlcl1
 | `com.example.automation/icons/configs@2x.png` | New — 32×32 HiDPI gear icon |
 | `com.example.automation/build.properties` | Add `icons/` to `bin.includes` |
 | `com.example.automation/plugin.xml` | Add `icon="icons/configs.png"` to `<view>` and to `<command>` in the menu contribution |
+| `com.example.automation.feature/feature.xml` | Add `<description>` and `<copyright>` elements |
 
 ---
 
@@ -72,6 +78,37 @@ bin.includes = META-INF/,\
                plugin.xml,\
                icons/
 ```
+
+---
+
+## feature.xml Documentation
+
+```xml
+<feature
+    id="com.example.automation.feature"
+    label="Automation"
+    version="1.0.0.qualifier">
+
+  <description>
+    Adds an &quot;Automation&quot; item to the Project menu.
+    Clicking it opens the Automation view.
+  </description>
+
+  <copyright>
+    Copyright 2026 com.example
+  </copyright>
+
+  <plugin
+      id="com.example.automation"
+      download-size="0"
+      install-size="0"
+      version="0.0.0"
+      unpack="false"/>
+
+</feature>
+```
+
+The `<description>` text appears in the feature detail panel of the "Install New Software" wizard. The `<copyright>` text appears on the "Install Details" page.
 
 ---
 
