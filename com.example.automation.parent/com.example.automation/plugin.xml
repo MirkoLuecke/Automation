@@ -7,6 +7,7 @@
         id="com.example.automation.view"
         name="Automation"
         class="com.example.automation.AutomationView"
+        icon="icons/configs.png"
         restorable="true"/>
   </extension>
 
@@ -26,7 +27,8 @@
     <menuContribution locationURI="menu:project?after=additions">
       <command
           commandId="com.example.automation.showView"
-          label="Automation"/>
+          label="Automation"
+          icon="icons/configs.png"/>
     </menuContribution>
   </extension>
 
