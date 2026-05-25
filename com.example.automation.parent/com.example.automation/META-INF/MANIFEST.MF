@@ -6,7 +6,8 @@ Bundle-Version: 1.0.0.qualifier
 Bundle-Activator: com.example.automation.Activator
 Require-Bundle: org.eclipse.ui,
  org.eclipse.core.runtime,
- org.eclipse.core.commands
+ org.eclipse.core.commands,
+ org.eclipse.jface
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Bundle-ActivationPolicy: lazy
 Bundle-ClassPath: .,
