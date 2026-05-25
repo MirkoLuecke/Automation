@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+
+  <extension point="org.eclipse.ui.views">
+    <view
+        id="com.example.automation.view"
+        name="Automation"
+        class="com.example.automation.AutomationView"
+        restorable="true"/>
+  </extension>
+
+  <extension point="org.eclipse.ui.commands">
+    <command
+        id="com.example.automation.showView"
+        name="Automation"/>
+  </extension>
+
+  <extension point="org.eclipse.ui.handlers">
+    <handler
+        commandId="com.example.automation.showView"
+        class="com.example.automation.ShowAutomationViewHandler"/>
+  </extension>
+
+  <extension point="org.eclipse.ui.menus">
+    <menuContribution locationURI="menu:project?after=additions">
+      <command
+          commandId="com.example.automation.showView"
+          label="Automation"/>
+    </menuContribution>
+  </extension>
+
+</plugin>
