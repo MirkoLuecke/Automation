@@ -36,4 +36,15 @@ public class NewWorkflowDialogTest {
         assertEquals("my-workflow-3",
             NewWorkflowDialog.deriveId("My Workflow", Set.of("my-workflow", "my-workflow-2")));
     }
+
+    @Test
+    public void deriveId_allSpecialChars_fallsBackToWorkflow() {
+        assertEquals("workflow", NewWorkflowDialog.deriveId("!!!", Set.of()));
+    }
+
+    @Test
+    public void deriveId_fillsGap() {
+        assertEquals("my-workflow-2",
+            NewWorkflowDialog.deriveId("My Workflow", Set.of("my-workflow", "my-workflow-3")));
+    }
 }
