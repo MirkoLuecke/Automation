@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.eclipse.core.runtime.Platform;
@@ -22,6 +23,7 @@ import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.ToolBar;
 import org.eclipse.swt.widgets.ToolItem;
+import org.eclipse.jface.window.Window;
 import org.eclipse.ui.part.ViewPart;
 
 import com.example.automation.api.ActionRegistry;
@@ -187,7 +189,32 @@ public class AutomationView extends ViewPart {
     }
 
     private void onNew() {
-        Platform.getLog(getClass()).info("New workflow: not yet implemented (sub-project 7)");
+        Set<String> existingIds = workflows.stream()
+            .map(Workflow::getWorkflowId)
+            .collect(Collectors.toSet());
+        NewWorkflowDialog dialog = new NewWorkflowDialog(getSite().getShell(), existingIds);
+        if (dialog.open() == Window.OK) {
+            saveNew(dialog.getResult());
+        }
+    }
+
+    private void saveNew(Workflow wf) {
+        try {
+            new WorkflowRepository().save(wf);
+        } catch (Exception e) {
+            Platform.getLog(getClass()).error("Failed to save new workflow", e);
+            return;
+        }
+        loadWorkflows();
+        for (int i = 0; i < workflows.size(); i++) {
+            if (wf.getWorkflowId().equals(workflows.get(i).getWorkflowId())) {
+                workflowCombo.select(i);
+                currentWorkflow = workflows.get(i);
+                viewer.setInput(currentWorkflow.getSteps());
+                break;
+            }
+        }
+        updateButtonStates();
     }
 
     private void onAddStep() {
