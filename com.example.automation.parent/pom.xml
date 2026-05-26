@@ -26,6 +26,12 @@
     <repository>
       <id>local-m2e</id>
       <url>file:${maven.multiModuleProjectDirectory}/local-repo</url>
+      <releases>
+        <updatePolicy>never</updatePolicy>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
     </repository>
     <repository>
       <id>eclipse-2023-06</id>
