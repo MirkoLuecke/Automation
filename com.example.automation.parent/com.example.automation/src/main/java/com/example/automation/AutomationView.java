@@ -252,16 +252,21 @@ public class AutomationView extends ViewPart {
 
     private void startRunner(List<Step> steps) {
         if (activeRunner != null) return;
+        Runnable safeRefresh = () -> {
+            if (!viewer.getControl().isDisposed()) viewer.refresh();
+        };
         Runnable onDone = () -> {
             activeRunner = null;
-            updateButtonStates();
-            viewer.refresh();
+            if (!viewer.getControl().isDisposed()) {
+                updateButtonStates();
+                viewer.refresh();
+            }
         };
         activeRunner = new WorkflowRunner(
             steps,
             ActionRegistry.getInstance(),
             viewer.getControl().getDisplay()::asyncExec,
-            viewer::refresh,
+            safeRefresh,
             onDone);
         updateButtonStates();
         activeRunner.start();
@@ -273,6 +278,12 @@ public class AutomationView extends ViewPart {
         } catch (Exception e) {
             Platform.getLog(getClass()).error("Failed to save workflow", e);
         }
+    }
+
+    @Override
+    public void dispose() {
+        if (activeRunner != null) activeRunner.cancel();
+        super.dispose();
     }
 
     @Override

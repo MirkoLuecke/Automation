@@ -63,6 +63,7 @@ public class WorkflowRunner {
                         uiRunner.accept(refresh);
                     }
                 } catch (Exception e) {
+                    e.printStackTrace();
                     step.setStatus(StepStatus.RED);
                     uiRunner.accept(refresh);
                     break;
