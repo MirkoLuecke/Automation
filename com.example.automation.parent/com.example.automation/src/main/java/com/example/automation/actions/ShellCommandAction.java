@@ -32,6 +32,8 @@ public class ShellCommandAction implements IAction {
     @Override
     public void execute(Map<String, String> config, IActionContext context) throws Exception {
         String command    = config.get("command");
+        if (command == null || command.isBlank())
+            throw new IllegalArgumentException("command must not be blank");
         String workingDir = config.getOrDefault("workingDir", "");
 
         List<String> cmd = System.getProperty("os.name").toLowerCase().contains("win")

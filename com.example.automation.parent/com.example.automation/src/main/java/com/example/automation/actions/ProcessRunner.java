@@ -20,7 +20,9 @@ class ProcessRunner {
         Thread t2 = pipe(process.getErrorStream(), context.getErrorStream());
         while (!process.waitFor(100, TimeUnit.MILLISECONDS)) {
             if (context.isCancelled()) {
-                process.destroy();
+                process.destroyForcibly();
+                t1.join();
+                t2.join();
                 return;
             }
         }
