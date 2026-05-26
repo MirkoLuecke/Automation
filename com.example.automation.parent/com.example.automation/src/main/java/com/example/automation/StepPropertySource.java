@@ -47,33 +47,34 @@ public class StepPropertySource implements IPropertySource {
             String aid = step.getActionId();
             return aid != null ? aid : "";
         }
-        return step.getConfig().getOrDefault((String) id, "");
+        return (id instanceof String key) ? step.getConfig().getOrDefault(key, "") : "";
     }
 
     @Override
     public void setPropertyValue(Object id, Object value) {
         if (PROP_ACTION.equals(id)) return;
-        step.getConfig().put((String) id, (String) value);
+        if (!(id instanceof String key)) return;
+        step.getConfig().put(key, (String) value);
         save.run();
     }
 
     @Override
     public void resetPropertyValue(Object id) {
         if (PROP_ACTION.equals(id)) return;
+        if (!(id instanceof String key)) return;
         IAction action = registry.getAction(step.getActionId());
-        if (action != null) {
-            String def = action.getDefaultConfig().get((String) id);
-            if (def != null) {
-                step.getConfig().put((String) id, def);
-                save.run();
-            }
+        if (action == null) return; // action unknown: no canonical default, leave value unchanged
+        String def = action.getDefaultConfig().get(key);
+        if (def != null) {
+            step.getConfig().put(key, def);
+            save.run();
         }
     }
 
     @Override
     public boolean isPropertySet(Object id) {
         if (PROP_ACTION.equals(id)) return false;
-        return step.getConfig().containsKey((String) id);
+        return (id instanceof String key) && step.getConfig().containsKey(key);
     }
 
     @Override
