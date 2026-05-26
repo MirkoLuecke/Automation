@@ -36,6 +36,11 @@ public class NewWorkflowDialog extends TitleAreaDialog {
     }
 
     @Override
+    protected boolean isResizable() {
+        return true;
+    }
+
+    @Override
     protected Control createDialogArea(Composite parent) {
         Composite area = (Composite) super.createDialogArea(parent);
         Composite container = new Composite(area, SWT.NONE);
@@ -66,7 +71,7 @@ public class NewWorkflowDialog extends TitleAreaDialog {
             } else {
                 String id = deriveId(name, existingIds);
                 idPreviewLabel.setText("ID: " + id);
-                setMessage(null);
+                setMessage("");
                 getButton(OK).setEnabled(true);
             }
         });
@@ -88,6 +93,7 @@ public class NewWorkflowDialog extends TitleAreaDialog {
     }
 
     public static String deriveId(String displayName, Set<String> existingIds) {
+        if (displayName == null || displayName.isBlank()) return "workflow";
         String base = displayName.toLowerCase()
             .replaceAll("[^a-z0-9]+", "-")
             .replaceAll("^-+|-+$", "");
