@@ -58,6 +58,7 @@ public class StepPropertySourceTest {
         boolean[] saved = {false};
 
         assertEquals("30", src(step, reg, saved).getPropertyValue("timeout"));
+        assertFalse(saved[0]);
     }
 
     @Test
