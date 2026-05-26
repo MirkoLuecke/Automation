@@ -3,6 +3,7 @@ package com.example.automation;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 import com.example.automation.api.ActionRegistry;
@@ -31,8 +32,8 @@ public class WorkflowRunner {
         this.uiRunner = uiRunner;
         this.refresh  = refresh;
         this.onDone   = onDone;
-        this.stdout   = stdout;
-        this.stderr   = stderr;
+        this.stdout   = Objects.requireNonNull(stdout, "stdout");
+        this.stderr   = Objects.requireNonNull(stderr, "stderr");
     }
 
     public Thread start() {
