@@ -41,33 +41,36 @@ public class WorkflowRunner {
     }
 
     private void execute() {
-        for (Step step : steps) {
-            if (cancelled) break;
+        try {
+            for (Step step : steps) {
+                if (cancelled) break;
 
-            step.setStatus(StepStatus.YELLOW);
-            step.setProgress(0);
-            uiRunner.accept(refresh);
-
-            IAction action = registry.getAction(step.getActionId());
-            if (action == null) {
-                step.setStatus(StepStatus.RED);
+                step.setStatus(StepStatus.YELLOW);
+                step.setProgress(0);
                 uiRunner.accept(refresh);
-                break;
-            }
 
-            try {
-                action.execute(step.getConfig(), new ActionContextImpl(step));
-                if (!cancelled) {
-                    step.setStatus(StepStatus.GREEN);
+                IAction action = registry.getAction(step.getActionId());
+                if (action == null) {
+                    step.setStatus(StepStatus.RED);
                     uiRunner.accept(refresh);
+                    break;
                 }
-            } catch (Exception e) {
-                step.setStatus(StepStatus.RED);
-                uiRunner.accept(refresh);
-                break;
+
+                try {
+                    action.execute(step.getConfig(), new ActionContextImpl(step));
+                    if (!cancelled) {
+                        step.setStatus(StepStatus.GREEN);
+                        uiRunner.accept(refresh);
+                    }
+                } catch (Exception e) {
+                    step.setStatus(StepStatus.RED);
+                    uiRunner.accept(refresh);
+                    break;
+                }
             }
+        } finally {
+            uiRunner.accept(onDone);
         }
-        uiRunner.accept(onDone);
     }
 
     private class ActionContextImpl implements IActionContext {
