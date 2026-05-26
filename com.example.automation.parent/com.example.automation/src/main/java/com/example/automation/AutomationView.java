@@ -29,6 +29,11 @@ import com.example.automation.model.Step;
 import com.example.automation.model.StepStatus;
 import com.example.automation.model.Workflow;
 import com.example.automation.persistence.WorkflowRepository;
+import org.eclipse.ui.console.ConsolePlugin;
+import org.eclipse.ui.console.IConsole;
+import org.eclipse.ui.console.IConsoleManager;
+import org.eclipse.ui.console.MessageConsole;
+import org.eclipse.ui.console.MessageConsoleStream;
 
 public class AutomationView extends ViewPart {
 
@@ -252,6 +257,10 @@ public class AutomationView extends ViewPart {
 
     private void startRunner(List<Step> steps) {
         if (activeRunner != null) return;
+        MessageConsole console = openConsole();
+        MessageConsoleStream stdout = console.newMessageStream();
+        MessageConsoleStream stderr = console.newMessageStream();
+        stderr.setColor(viewer.getControl().getDisplay().getSystemColor(SWT.COLOR_RED));
         Runnable safeRefresh = () -> {
             if (!viewer.getControl().isDisposed()) viewer.refresh();
         };
@@ -267,9 +276,26 @@ public class AutomationView extends ViewPart {
             ActionRegistry.getInstance(),
             viewer.getControl().getDisplay()::asyncExec,
             safeRefresh,
-            onDone);
+            onDone,
+            stdout,
+            stderr);
         updateButtonStates();
         activeRunner.start();
+    }
+
+    private MessageConsole openConsole() {
+        IConsoleManager mgr = ConsolePlugin.getDefault().getConsoleManager();
+        for (IConsole c : mgr.getConsoles()) {
+            if (c instanceof MessageConsole mc && "Automation".equals(c.getName())) {
+                mc.clearConsole();
+                mgr.showConsoleView(mc);
+                return mc;
+            }
+        }
+        MessageConsole mc = new MessageConsole("Automation", null);
+        mgr.addConsoles(new IConsole[] { mc });
+        mgr.showConsoleView(mc);
+        return mc;
     }
 
     private void save() {

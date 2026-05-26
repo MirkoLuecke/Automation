@@ -1,5 +1,6 @@
 package com.example.automation;
 
+import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.function.Consumer;
@@ -17,16 +18,21 @@ public class WorkflowRunner {
     private final Consumer<Runnable> uiRunner;
     private final Runnable refresh;
     private final Runnable onDone;
+    private final OutputStream stdout;
+    private final OutputStream stderr;
 
     private volatile boolean cancelled = false;
 
     public WorkflowRunner(List<Step> steps, ActionRegistry registry,
-                          Consumer<Runnable> uiRunner, Runnable refresh, Runnable onDone) {
+                          Consumer<Runnable> uiRunner, Runnable refresh, Runnable onDone,
+                          OutputStream stdout, OutputStream stderr) {
         this.steps    = steps;
         this.registry = registry;
         this.uiRunner = uiRunner;
         this.refresh  = refresh;
         this.onDone   = onDone;
+        this.stdout   = stdout;
+        this.stderr   = stderr;
     }
 
     public Thread start() {
@@ -70,8 +76,14 @@ public class WorkflowRunner {
                 }
             }
         } finally {
+            closeQuietly(stdout);
+            closeQuietly(stderr);
             uiRunner.accept(onDone);
         }
+    }
+
+    private static void closeQuietly(OutputStream s) {
+        try { s.close(); } catch (IOException ignored) {}
     }
 
     private class ActionContextImpl implements IActionContext {
@@ -90,9 +102,9 @@ public class WorkflowRunner {
         public boolean isCancelled() { return cancelled; }
 
         @Override
-        public OutputStream getOutputStream() { return OutputStream.nullOutputStream(); }
+        public OutputStream getOutputStream() { return stdout; }
 
         @Override
-        public OutputStream getErrorStream() { return OutputStream.nullOutputStream(); }
+        public OutputStream getErrorStream() { return stderr; }
     }
 }
