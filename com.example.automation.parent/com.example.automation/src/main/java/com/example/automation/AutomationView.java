@@ -13,6 +13,7 @@ import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.jface.viewers.TableViewerColumn;
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ControlAdapter;
 import org.eclipse.swt.events.ControlEvent;
@@ -203,6 +204,7 @@ public class AutomationView extends ViewPart {
             new WorkflowRepository().save(wf);
         } catch (Exception e) {
             Platform.getLog(getClass()).error("Failed to save new workflow", e);
+            MessageDialog.openError(getSite().getShell(), "Error", "Failed to save workflow: " + e.getMessage());
             return;
         }
         loadWorkflows();
