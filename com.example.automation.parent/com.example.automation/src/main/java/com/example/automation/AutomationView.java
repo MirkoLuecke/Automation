@@ -244,10 +244,14 @@ public class AutomationView extends ViewPart {
     }
 
     private void onStop() {
-        if (activeRunner != null) activeRunner.cancel();
+        if (activeRunner != null) {
+            activeRunner.cancel();
+            stopItem.setEnabled(false);
+        }
     }
 
     private void startRunner(List<Step> steps) {
+        if (activeRunner != null) return;
         Runnable onDone = () -> {
             activeRunner = null;
             updateButtonStates();
