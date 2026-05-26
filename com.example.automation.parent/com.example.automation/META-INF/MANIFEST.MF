@@ -5,6 +5,7 @@ Bundle-SymbolicName: com.example.automation;singleton:=true
 Bundle-Version: 1.0.0.qualifier
 Bundle-Activator: com.example.automation.Activator
 Require-Bundle: org.eclipse.ui,
+ org.eclipse.ui.views,
  org.eclipse.core.runtime,
  org.eclipse.core.commands,
  org.eclipse.jface,
