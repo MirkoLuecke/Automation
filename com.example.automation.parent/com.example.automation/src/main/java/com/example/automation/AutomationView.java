@@ -303,6 +303,7 @@ public class AutomationView extends ViewPart {
     }
 
     private void save() {
+        if (currentWorkflow == null) return;
         try {
             new WorkflowRepository().save(currentWorkflow);
         } catch (Exception e) {
