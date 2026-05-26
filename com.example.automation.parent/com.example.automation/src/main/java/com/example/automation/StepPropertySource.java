@@ -53,8 +53,8 @@ public class StepPropertySource implements IPropertySource {
     @Override
     public void setPropertyValue(Object id, Object value) {
         if (PROP_ACTION.equals(id)) return;
-        if (!(id instanceof String key)) return;
-        step.getConfig().put(key, (String) value);
+        if (!(id instanceof String key) || !(value instanceof String strVal)) return;
+        step.getConfig().put(key, strVal);
         save.run();
     }
 
@@ -74,7 +74,12 @@ public class StepPropertySource implements IPropertySource {
     @Override
     public boolean isPropertySet(Object id) {
         if (PROP_ACTION.equals(id)) return false;
-        return (id instanceof String key) && step.getConfig().containsKey(key);
+        if (!(id instanceof String key)) return false;
+        IAction action = registry.getAction(step.getActionId());
+        if (action == null) return step.getConfig().containsKey(key);
+        String currentVal = step.getConfig().get(key);
+        if (currentVal == null) return false;
+        return !currentVal.equals(action.getDefaultConfig().get(key));
     }
 
     @Override

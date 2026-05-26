@@ -108,4 +108,26 @@ public class StepPropertySourceTest {
         }
         assertTrue("foo key must appear as an editable TextPropertyDescriptor", foundFoo);
     }
+
+    @Test
+    public void isPropertySet_falseWhenValueEqualsDefault() {
+        Step step = new Step("my.action");
+        step.getConfig().put("timeout", "10"); // same as default
+        ActionRegistry reg = new ActionRegistry(List.of(
+            stub("my.action", Map.of("timeout", "10"))));
+        boolean[] saved = {false};
+
+        assertFalse(src(step, reg, saved).isPropertySet("timeout"));
+    }
+
+    @Test
+    public void isPropertySet_trueWhenValueDiffersFromDefault() {
+        Step step = new Step("my.action");
+        step.getConfig().put("timeout", "99"); // different from default
+        ActionRegistry reg = new ActionRegistry(List.of(
+            stub("my.action", Map.of("timeout", "10"))));
+        boolean[] saved = {false};
+
+        assertTrue(src(step, reg, saved).isPropertySet("timeout"));
+    }
 }
