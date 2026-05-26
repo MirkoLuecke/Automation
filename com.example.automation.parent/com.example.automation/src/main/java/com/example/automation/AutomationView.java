@@ -50,6 +50,7 @@ public class AutomationView extends ViewPart {
     private ToolItem runItem, runSelectedItem, stopItem;
 
     private WorkflowRunner activeRunner;
+    private StepAdapterFactory adapterFactory;
 
     @Override
     public void createPartControl(Composite parent) {
@@ -59,6 +60,9 @@ public class AutomationView extends ViewPart {
         createTable(parent);
         loadWorkflows();
         updateButtonStates();
+        getSite().setSelectionProvider(viewer);
+        adapterFactory = new StepAdapterFactory(this::save);
+        Platform.getAdapterManager().registerAdapters(adapterFactory, Step.class);
     }
 
     private void createCombo(Composite parent) {
@@ -308,6 +312,7 @@ public class AutomationView extends ViewPart {
 
     @Override
     public void dispose() {
+        if (adapterFactory != null) Platform.getAdapterManager().unregisterAdapters(adapterFactory);
         if (activeRunner != null) activeRunner.cancel();
         super.dispose();
     }
