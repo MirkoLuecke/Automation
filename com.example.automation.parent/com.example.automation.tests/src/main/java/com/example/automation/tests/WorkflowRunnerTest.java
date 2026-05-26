@@ -2,7 +2,6 @@ package com.example.automation.tests;
 
 import static org.junit.Assert.*;
 
-import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -52,9 +51,11 @@ public class WorkflowRunnerTest {
 
     @Test
     public void unknownActionId_statusRed() throws Exception {
-        Step step = new Step("missing");
-        run(List.of(step), new ActionRegistry(List.of()));
-        assertEquals(StepStatus.RED, step.getStatus());
+        Step step1 = new Step("missing");
+        Step step2 = new Step("ok");
+        run(List.of(step1, step2), new ActionRegistry(List.of()));
+        assertEquals(StepStatus.RED,   step1.getStatus());
+        assertEquals(StepStatus.WHITE, step2.getStatus());
     }
 
     @Test
@@ -89,5 +90,6 @@ public class WorkflowRunnerTest {
         Step step = new Step("a");
         run(List.of(step), new ActionRegistry(List.of(stub("a", ctx -> ctx.setProgress(50)))));
         assertEquals(50, step.getProgress());
+        assertEquals(StepStatus.GREEN, step.getStatus());
     }
 }
