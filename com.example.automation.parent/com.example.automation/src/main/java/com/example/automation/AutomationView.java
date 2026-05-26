@@ -1,8 +1,11 @@
 package com.example.automation;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.jface.viewers.ArrayContentProvider;
@@ -21,7 +24,9 @@ import org.eclipse.swt.widgets.ToolBar;
 import org.eclipse.swt.widgets.ToolItem;
 import org.eclipse.ui.part.ViewPart;
 
+import com.example.automation.api.ActionRegistry;
 import com.example.automation.model.Step;
+import com.example.automation.model.StepStatus;
 import com.example.automation.model.Workflow;
 import com.example.automation.persistence.WorkflowRepository;
 
@@ -38,6 +43,8 @@ public class AutomationView extends ViewPart {
 
     private ToolItem addStepItem, deleteStepItem, moveUpItem, moveDownItem;
     private ToolItem runItem, runSelectedItem, stopItem;
+
+    private WorkflowRunner activeRunner;
 
     @Override
     public void createPartControl(Composite parent) {
@@ -85,7 +92,7 @@ public class AutomationView extends ViewPart {
     }
 
     private void createTable(Composite parent) {
-        viewer = new TableViewer(parent, SWT.FULL_SELECTION | SWT.BORDER | SWT.SINGLE);
+        viewer = new TableViewer(parent, SWT.FULL_SELECTION | SWT.BORDER | SWT.MULTI);
         viewer.getTable().setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
         viewer.getTable().setHeaderVisible(true);
         viewer.getTable().setLinesVisible(true);
@@ -155,17 +162,19 @@ public class AutomationView extends ViewPart {
     private void updateButtonStates() {
         boolean hasWorkflow = currentWorkflow != null;
         IStructuredSelection sel = viewer.getStructuredSelection();
-        boolean hasStep = !sel.isEmpty();
-        int selIdx    = viewer.getTable().getSelectionIndex();
-        int stepCount = hasWorkflow ? currentWorkflow.getSteps().size() : 0;
+        boolean hasStep   = !sel.isEmpty();
+        int selCount      = sel.size();
+        int selIdx        = viewer.getTable().getSelectionIndex();
+        int stepCount     = hasWorkflow ? currentWorkflow.getSteps().size() : 0;
+        boolean running   = activeRunner != null;
 
-        addStepItem.setEnabled(hasWorkflow);
-        deleteStepItem.setEnabled(hasStep);
-        moveUpItem.setEnabled(hasStep && selIdx > 0);
-        moveDownItem.setEnabled(hasStep && selIdx < stepCount - 1);
-        runItem.setEnabled(hasWorkflow && stepCount > 0);
-        runSelectedItem.setEnabled(hasStep);
-        stopItem.setEnabled(false);
+        addStepItem.setEnabled(!running && hasWorkflow);
+        deleteStepItem.setEnabled(!running && hasStep);
+        moveUpItem.setEnabled(!running && selCount == 1 && selIdx > 0);
+        moveDownItem.setEnabled(!running && selCount == 1 && selIdx < stepCount - 1);
+        runItem.setEnabled(!running && hasWorkflow && stepCount > 0);
+        runSelectedItem.setEnabled(!running && hasStep);
+        stopItem.setEnabled(running);
     }
 
     private void onNew() {
@@ -211,15 +220,47 @@ public class AutomationView extends ViewPart {
     }
 
     private void onRun() {
-        Platform.getLog(getClass()).info("Run: not yet implemented (sub-project 4)");
+        if (currentWorkflow == null) return;
+        List<Step> steps = currentWorkflow.getSteps();
+        steps.forEach(s -> { s.setStatus(StepStatus.WHITE); s.setProgress(0); });
+        viewer.refresh();
+        startRunner(new ArrayList<>(steps));
     }
 
+    @SuppressWarnings("unchecked")
     private void onRunSelected() {
-        Platform.getLog(getClass()).info("Run Selected: not yet implemented (sub-project 4)");
+        if (currentWorkflow == null) return;
+        List<Step> allSteps = currentWorkflow.getSteps();
+        List<Object> rawList = (List<Object>) viewer.getStructuredSelection().toList();
+        List<Step> ordered = rawList.stream()
+            .filter(o -> o instanceof Step)
+            .map(o -> (Step) o)
+            .sorted(Comparator.comparingInt(allSteps::indexOf))
+            .collect(Collectors.toList());
+        if (ordered.isEmpty()) return;
+        ordered.forEach(s -> { s.setStatus(StepStatus.WHITE); s.setProgress(0); });
+        viewer.refresh();
+        startRunner(ordered);
     }
 
     private void onStop() {
-        Platform.getLog(getClass()).info("Stop: not yet implemented (sub-project 4)");
+        if (activeRunner != null) activeRunner.cancel();
+    }
+
+    private void startRunner(List<Step> steps) {
+        Runnable onDone = () -> {
+            activeRunner = null;
+            updateButtonStates();
+            viewer.refresh();
+        };
+        activeRunner = new WorkflowRunner(
+            steps,
+            ActionRegistry.getInstance(),
+            viewer.getControl().getDisplay()::asyncExec,
+            viewer::refresh,
+            onDone);
+        updateButtonStates();
+        activeRunner.start();
     }
 
     private void save() {

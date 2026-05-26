@@ -2,6 +2,7 @@ package com.example.automation.tests;
 
 import static org.junit.Assert.*;
 import java.io.IOException;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swtbot.eclipse.finder.SWTWorkbenchBot;
 import org.eclipse.swtbot.swt.finder.exceptions.WidgetNotFoundException;
 import org.eclipse.swtbot.swt.finder.widgets.SWTBotTable;
@@ -70,6 +71,30 @@ public class AutomationViewTest {
             assertEquals(1, table.rowCount());
         } finally {
             repo.delete("swtbot-test-wf");
+        }
+    }
+
+    @Test
+    public void multipleStepsCanBeSelected() throws IOException {
+        WorkflowRepository repo = new WorkflowRepository();
+        Workflow wf = new Workflow("multi-select-test-wf", "Multi Select Test", "test");
+        wf.getSteps().add(new Step("action.a"));
+        wf.getSteps().add(new Step("action.b"));
+        repo.save(wf);
+        try {
+            bot.viewById("com.example.automation.view").close();
+            bot.menu("Project").menu("Automation").click();
+            bot.viewById("com.example.automation.view").bot()
+               .comboBox().setSelection("Multi Select Test");
+            SWTBotTable table = bot.viewById("com.example.automation.view").bot().table();
+            int[] selCount = {0};
+            Display.getDefault().syncExec(() -> {
+                table.widget.select(new int[]{0, 1});
+                selCount[0] = table.widget.getSelectionCount();
+            });
+            assertEquals(2, selCount[0]);
+        } finally {
+            repo.delete("multi-select-test-wf");
         }
     }
 }
