@@ -2,6 +2,7 @@ package com.example.automation.tests;
 
 import static org.junit.Assert.*;
 
+import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -38,7 +39,8 @@ public class WorkflowRunnerTest {
 
     private void run(List<Step> steps, ActionRegistry registry) throws InterruptedException {
         CountDownLatch done = new CountDownLatch(1);
-        new WorkflowRunner(steps, registry, r -> r.run(), () -> {}, done::countDown).start();
+        new WorkflowRunner(steps, registry, r -> r.run(), () -> {}, done::countDown,
+            OutputStream.nullOutputStream(), OutputStream.nullOutputStream()).start();
         assertTrue("Runner did not finish in 5 s", done.await(5, TimeUnit.SECONDS));
     }
 
@@ -78,7 +80,8 @@ public class WorkflowRunnerTest {
         WorkflowRunner runner = new WorkflowRunner(
             List.of(step),
             new ActionRegistry(List.of(stub("a", ctx -> {}))),
-            r -> r.run(), () -> {}, done::countDown);
+            r -> r.run(), () -> {}, done::countDown,
+            OutputStream.nullOutputStream(), OutputStream.nullOutputStream());
         runner.cancel();
         runner.start();
         assertTrue(done.await(5, TimeUnit.SECONDS));
