@@ -2,8 +2,6 @@ package com.example.automation.tests;
 
 import static org.junit.Assert.*;
 
-import java.util.OptionalInt;
-
 import org.junit.Test;
 
 import com.example.automation.actions.MavenProgressParser;

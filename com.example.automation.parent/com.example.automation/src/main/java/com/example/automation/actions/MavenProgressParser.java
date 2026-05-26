@@ -17,10 +17,14 @@ public class MavenProgressParser {
 
         Matcher m = NM.matcher(line);
         if (m.find()) {
-            lastN = Integer.parseInt(m.group(1));
-            lastM = Integer.parseInt(m.group(2));
-            seenNM = true;
-            if (lastM > 0) return OptionalInt.of((lastN - 1) * 100 / lastM);
+            int n = Integer.parseInt(m.group(1));
+            int m2 = Integer.parseInt(m.group(2));
+            if (m2 > 0) {
+                lastN = n;
+                lastM = m2;
+                seenNM = true;
+                return OptionalInt.of((lastN - 1) * 100 / lastM);
+            }
         }
 
         if (line.contains("BUILD SUCCESS")) {
