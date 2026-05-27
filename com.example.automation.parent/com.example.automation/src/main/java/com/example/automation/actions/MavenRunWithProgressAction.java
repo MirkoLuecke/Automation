@@ -91,12 +91,14 @@ public class MavenRunWithProgressAction implements IAction {
 
         private void onOutput(String text) {
             writeQuietly(context.getOutputStream(), text);
-            lineBuffer.append(text);
-            int idx;
-            while ((idx = lineBuffer.indexOf("\n")) >= 0) {
-                String line = lineBuffer.substring(0, idx).stripTrailing();
-                lineBuffer.delete(0, idx + 1);
-                processLine(line);
+            synchronized (lineBuffer) {
+                lineBuffer.append(text);
+                int idx;
+                while ((idx = lineBuffer.indexOf("\n")) >= 0) {
+                    String line = lineBuffer.substring(0, idx).stripTrailing();
+                    lineBuffer.delete(0, idx + 1);
+                    processLine(line);
+                }
             }
         }
 
@@ -107,7 +109,10 @@ public class MavenRunWithProgressAction implements IAction {
         }
 
         private void flushBuffer() {
-            String remaining = lineBuffer.toString().stripTrailing();
+            String remaining;
+            synchronized (lineBuffer) {
+                remaining = lineBuffer.toString().stripTrailing();
+            }
             if (!remaining.isEmpty()) processLine(remaining);
         }
 
