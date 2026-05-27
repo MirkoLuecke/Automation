@@ -2,6 +2,7 @@ package com.example.automation.actions;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -79,6 +80,6 @@ public class ExecuteRunConfigAction implements IAction {
 
     private static void writeQuietly(OutputStream out, String text) {
         if (text == null || text.isEmpty()) return;
-        try { out.write(text.getBytes()); } catch (IOException ignored) {}
+        try { out.write(text.getBytes(StandardCharsets.UTF_8)); } catch (IOException ignored) {}
     }
 }
