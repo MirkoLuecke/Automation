@@ -34,6 +34,11 @@ public class GitCloneAction implements IAction {
         String targetDir = config.get("targetDir");
         String branch    = config.getOrDefault("branch", "");
 
+        if (url == null || url.isBlank())
+            throw new IllegalArgumentException("url must not be blank");
+        if (targetDir == null || targetDir.isBlank())
+            throw new IllegalArgumentException("targetDir must not be blank");
+
         List<String> cmd = new ArrayList<>(List.of("git", "clone"));
         if (!branch.isBlank()) { cmd.add("--branch"); cmd.add(branch); }
         cmd.add(url);

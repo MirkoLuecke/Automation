@@ -30,8 +30,16 @@ public class GitCheckoutAction implements IAction {
 
     @Override
     public void execute(Map<String, String> config, IActionContext context) throws Exception {
+        String repoDir = config.get("repoDir");
+        String branch  = config.get("branch");
+
+        if (repoDir == null || repoDir.isBlank())
+            throw new IllegalArgumentException("repoDir must not be blank");
+        if (branch == null || branch.isBlank())
+            throw new IllegalArgumentException("branch must not be blank");
+
         ProcessRunner.run(
-            List.of("git", "-C", config.get("repoDir"), "checkout", config.get("branch")),
+            List.of("git", "-C", repoDir, "checkout", branch),
             null, context);
     }
 }
