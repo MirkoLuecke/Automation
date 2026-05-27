@@ -37,4 +37,40 @@
     </menuContribution>
   </extension>
 
+  <extension point="com.example.automation.actions">
+    <action class="com.example.automation.actions.ShellCommandAction"/>
+  </extension>
+
+  <extension point="com.example.automation.actions">
+    <action class="com.example.automation.actions.GitCloneAction"/>
+  </extension>
+
+  <extension point="com.example.automation.actions">
+    <action class="com.example.automation.actions.GitCheckoutAction"/>
+  </extension>
+
+  <extension point="com.example.automation.actions">
+    <action class="com.example.automation.actions.RefreshAllAction"/>
+  </extension>
+
+  <extension point="com.example.automation.actions">
+    <action class="com.example.automation.actions.RefreshProjectAction"/>
+  </extension>
+
+  <extension point="com.example.automation.actions">
+    <action class="com.example.automation.actions.ExecuteRunConfigAction"/>
+  </extension>
+
+  <extension point="com.example.automation.actions">
+    <action class="com.example.automation.actions.MavenRunWithProgressAction"/>
+  </extension>
+
+  <extension point="com.example.automation.actions">
+    <action class="com.example.automation.actions.ImportMavenProjectAction"/>
+  </extension>
+
+  <extension point="com.example.automation.actions">
+    <action class="com.example.automation.actions.MavenUpdateProjectAction"/>
+  </extension>
+
 </plugin>
