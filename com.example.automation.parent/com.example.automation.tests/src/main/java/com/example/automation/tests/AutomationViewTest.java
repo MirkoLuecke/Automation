@@ -25,7 +25,7 @@ public class AutomationViewTest {
     }
 
     @Test
-    public void comboIsVisible() {
+    public void headerLabelsArePresent() {
         // The Combo was replaced by two Label widgets (name + description).
         // Verify the view is open and the label area is present by checking
         // we can find the toolbar button that sits immediately above it.
@@ -72,7 +72,7 @@ public class AutomationViewTest {
                .toolbarButtonWithTooltip("Open Workflow").click();
 
             // In the WorkflowPickerDialog, select the test workflow by clicking its row
-            SWTBotTable pickerTable = bot.table();
+            SWTBotTable pickerTable = bot.shell("Open Workflow").bot().table();
             int rowIndex = -1;
             for (int i = 0; i < pickerTable.rowCount(); i++) {
                 if ("SWTBot Test Workflow".equals(pickerTable.cell(i, 0))) {
@@ -107,7 +107,7 @@ public class AutomationViewTest {
             bot.viewById("com.example.automation.view").bot()
                .toolbarButtonWithTooltip("Open Workflow").click();
 
-            SWTBotTable pickerTable = bot.table();
+            SWTBotTable pickerTable = bot.shell("Open Workflow").bot().table();
             int rowIndex = -1;
             for (int i = 0; i < pickerTable.rowCount(); i++) {
                 if ("Multi Select Test".equals(pickerTable.cell(i, 0))) {

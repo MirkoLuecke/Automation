@@ -36,6 +36,12 @@ public class WorkflowPickerDialog extends TitleAreaDialog {
     }
 
     @Override
+    protected void configureShell(Shell newShell) {
+        super.configureShell(newShell);
+        newShell.setText("Open Workflow");
+    }
+
+    @Override
     protected boolean isResizable() { return true; }
 
     @Override
