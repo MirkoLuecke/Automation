@@ -9,22 +9,33 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.eclipse.core.runtime.Platform;
+import org.eclipse.debug.ui.DebugUITools;
+import org.eclipse.debug.ui.IDebugUIConstants;
+import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.resource.JFaceResources;
 import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.jface.viewers.TableViewerColumn;
-import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.window.Window;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ControlAdapter;
 import org.eclipse.swt.events.ControlEvent;
 import org.eclipse.swt.events.SelectionListener;
+import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.ToolBar;
 import org.eclipse.swt.widgets.ToolItem;
-import org.eclipse.jface.window.Window;
+import org.eclipse.ui.ISharedImages;
+import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.console.ConsolePlugin;
+import org.eclipse.ui.console.IConsole;
+import org.eclipse.ui.console.IConsoleManager;
+import org.eclipse.ui.console.MessageConsole;
+import org.eclipse.ui.console.MessageConsoleStream;
 import org.eclipse.ui.part.ViewPart;
 
 import com.example.automation.api.ActionRegistry;
@@ -32,23 +43,20 @@ import com.example.automation.model.Step;
 import com.example.automation.model.StepStatus;
 import com.example.automation.model.Workflow;
 import com.example.automation.persistence.WorkflowRepository;
-import org.eclipse.ui.console.ConsolePlugin;
-import org.eclipse.ui.console.IConsole;
-import org.eclipse.ui.console.IConsoleManager;
-import org.eclipse.ui.console.MessageConsole;
-import org.eclipse.ui.console.MessageConsoleStream;
 
 public class AutomationView extends ViewPart {
 
     public static final String ID = "com.example.automation.view";
 
-    private Combo workflowCombo;
+    private Label workflowNameLabel;
+    private Label workflowDescLabel;
     private TableViewer viewer;
     private TableViewerColumn nameCol;
 
     private List<Workflow> workflows = Collections.emptyList();
     private Workflow currentWorkflow;
 
+    private ToolItem newWorkflowItem, openWorkflowItem;
     private ToolItem addStepItem, deleteStepItem, moveUpItem, moveDownItem;
     private ToolItem runItem, runSelectedItem, stopItem;
 
@@ -58,7 +66,7 @@ public class AutomationView extends ViewPart {
     @Override
     public void createPartControl(Composite parent) {
         parent.setLayout(new GridLayout(1, false));
-        createCombo(parent);
+        createHeader(parent);
         createToolBar(parent);
         createTable(parent);
         loadWorkflows();
@@ -68,37 +76,73 @@ public class AutomationView extends ViewPart {
         Platform.getAdapterManager().registerAdapters(adapterFactory, Step.class);
     }
 
-    private void createCombo(Composite parent) {
-        workflowCombo = new Combo(parent, SWT.READ_ONLY);
-        workflowCombo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
-        workflowCombo.addSelectionListener(
-            SelectionListener.widgetSelectedAdapter(e -> onWorkflowSelected()));
+    private void createHeader(Composite parent) {
+        workflowNameLabel = new Label(parent, SWT.NONE);
+        workflowNameLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+        workflowNameLabel.setFont(JFaceResources.getFontRegistry().getBold(JFaceResources.DEFAULT_FONT));
+
+        workflowDescLabel = new Label(parent, SWT.NONE);
+        workflowDescLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+        workflowDescLabel.setForeground(parent.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
+    }
+
+    private void updateHeader() {
+        if (currentWorkflow == null) {
+            workflowNameLabel.setText("(no workflows)");
+            workflowDescLabel.setText("");
+        } else {
+            workflowNameLabel.setText(currentWorkflow.getDisplayName());
+            String desc = currentWorkflow.getDescription();
+            workflowDescLabel.setText(desc == null ? "" : desc);
+        }
+        workflowNameLabel.getParent().layout();
     }
 
     private void createToolBar(Composite parent) {
+        ISharedImages shared = PlatformUI.getWorkbench().getSharedImages();
         ToolBar bar = new ToolBar(parent, SWT.FLAT | SWT.WRAP);
         bar.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
 
-        makeButton(bar, "New Workflow",  SelectionListener.widgetSelectedAdapter(e -> onNew()));
+        newWorkflowItem = makeButton(bar, "New Workflow",
+            shared.getImage(ISharedImages.IMG_TOOL_NEW_WIZARD),
+            SelectionListener.widgetSelectedAdapter(e -> onNew()));
+
+        openWorkflowItem = makeButton(bar, "Open Workflow",
+            shared.getImage(ISharedImages.IMG_OBJ_FOLDER),
+            SelectionListener.widgetSelectedAdapter(e -> onOpenWorkflow()));
 
         new ToolItem(bar, SWT.SEPARATOR);
 
-        addStepItem    = makeButton(bar, "Add Step",    SelectionListener.widgetSelectedAdapter(e -> onAddStep()));
-        deleteStepItem = makeButton(bar, "Delete Step", SelectionListener.widgetSelectedAdapter(e -> onDeleteStep()));
-        moveUpItem     = makeButton(bar, "Move Up",     SelectionListener.widgetSelectedAdapter(e -> onMoveUp()));
-        moveDownItem   = makeButton(bar, "Move Down",   SelectionListener.widgetSelectedAdapter(e -> onMoveDown()));
+        addStepItem = makeButton(bar, "Add Step",
+            shared.getImage(ISharedImages.IMG_OBJ_ADD),
+            SelectionListener.widgetSelectedAdapter(e -> onAddStep()));
+        deleteStepItem = makeButton(bar, "Delete Step",
+            shared.getImage(ISharedImages.IMG_TOOL_DELETE),
+            SelectionListener.widgetSelectedAdapter(e -> onDeleteStep()));
+        moveUpItem = makeButton(bar, "Move Step Up",
+            shared.getImage(ISharedImages.IMG_TOOL_UP),
+            SelectionListener.widgetSelectedAdapter(e -> onMoveUp()));
+        moveDownItem = makeButton(bar, "Move Step Down",
+            shared.getImage(ISharedImages.IMG_TOOL_FORWARD),
+            SelectionListener.widgetSelectedAdapter(e -> onMoveDown()));
 
         new ToolItem(bar, SWT.SEPARATOR);
 
-        runItem         = makeButton(bar, "Run",          SelectionListener.widgetSelectedAdapter(e -> onRun()));
-        runSelectedItem = makeButton(bar, "Run Selected", SelectionListener.widgetSelectedAdapter(e -> onRunSelected()));
-        stopItem        = makeButton(bar, "Stop",         SelectionListener.widgetSelectedAdapter(e -> onStop()));
+        runItem = makeButton(bar, "Run Workflow",
+            DebugUITools.getImage(IDebugUIConstants.IMG_ACT_RUN),
+            SelectionListener.widgetSelectedAdapter(e -> onRun()));
+        runSelectedItem = makeButton(bar, "Run Selected Steps",
+            DebugUITools.getImage(IDebugUIConstants.IMG_ACT_RUN),
+            SelectionListener.widgetSelectedAdapter(e -> onRunSelected()));
+        stopItem = makeButton(bar, "Stop",
+            shared.getImage(ISharedImages.IMG_ELCL_STOP),
+            SelectionListener.widgetSelectedAdapter(e -> onStop()));
     }
 
-    private ToolItem makeButton(ToolBar bar, String tooltip, SelectionListener listener) {
+    private ToolItem makeButton(ToolBar bar, String tooltip, Image image, SelectionListener listener) {
         ToolItem item = new ToolItem(bar, SWT.PUSH);
         item.setToolTipText(tooltip);
-        item.setText(tooltip);
+        item.setImage(image);
         item.addSelectionListener(listener);
         return item;
     }
@@ -144,42 +188,37 @@ public class AutomationView extends ViewPart {
             Platform.getLog(getClass()).error("Failed to load workflows", e);
             workflows = Collections.emptyList();
         }
-        workflowCombo.removeAll();
         if (workflows.isEmpty()) {
-            workflowCombo.add("(no workflows)");
-            workflowCombo.select(0);
-            workflowCombo.setEnabled(false);
             currentWorkflow = null;
             viewer.setInput(Collections.emptyList());
         } else {
-            workflowCombo.setEnabled(true);
-            for (Workflow wf : workflows) {
-                workflowCombo.add(wf.getDisplayName());
-            }
-            workflowCombo.select(0);
             currentWorkflow = workflows.get(0);
             viewer.setInput(currentWorkflow.getSteps());
         }
+        updateHeader();
     }
 
-    private void onWorkflowSelected() {
-        int idx = workflowCombo.getSelectionIndex();
-        if (idx >= 0 && idx < workflows.size()) {
-            currentWorkflow = workflows.get(idx);
+    private void onOpenWorkflow() {
+        WorkflowPickerDialog dialog = new WorkflowPickerDialog(getSite().getShell(), workflows);
+        if (dialog.open() == Window.OK) {
+            currentWorkflow = dialog.getResult();
             viewer.setInput(currentWorkflow.getSteps());
+            updateHeader();
+            updateButtonStates();
         }
-        updateButtonStates();
     }
 
     private void updateButtonStates() {
         boolean hasWorkflow = currentWorkflow != null;
         IStructuredSelection sel = viewer.getStructuredSelection();
-        boolean hasStep   = !sel.isEmpty();
-        int selCount      = sel.size();
-        int selIdx        = viewer.getTable().getSelectionIndex();
-        int stepCount     = hasWorkflow ? currentWorkflow.getSteps().size() : 0;
-        boolean running   = activeRunner != null;
+        boolean hasStep = !sel.isEmpty();
+        int selCount    = sel.size();
+        int selIdx      = viewer.getTable().getSelectionIndex();
+        int stepCount   = hasWorkflow ? currentWorkflow.getSteps().size() : 0;
+        boolean running = activeRunner != null;
 
+        newWorkflowItem.setEnabled(!running);
+        openWorkflowItem.setEnabled(!running && !workflows.isEmpty());
         addStepItem.setEnabled(!running && hasWorkflow);
         deleteStepItem.setEnabled(!running && hasStep);
         moveUpItem.setEnabled(!running && selCount == 1 && selIdx > 0);
@@ -208,23 +247,26 @@ public class AutomationView extends ViewPart {
             return;
         }
         loadWorkflows();
-        for (int i = 0; i < workflows.size(); i++) {
-            if (wf.getWorkflowId().equals(workflows.get(i).getWorkflowId())) {
-                workflowCombo.select(i);
-                currentWorkflow = workflows.get(i);
+        workflows.stream()
+            .filter(w -> wf.getWorkflowId().equals(w.getWorkflowId()))
+            .findFirst()
+            .ifPresent(w -> {
+                currentWorkflow = w;
                 viewer.setInput(currentWorkflow.getSteps());
-                break;
-            }
-        }
+                updateHeader();
+            });
         updateButtonStates();
     }
 
     private void onAddStep() {
         if (currentWorkflow == null) return;
-        currentWorkflow.getSteps().add(new Step(""));
-        save();
-        viewer.refresh();
-        updateButtonStates();
+        AddStepDialog dialog = new AddStepDialog(getSite().getShell(), ActionRegistry.getInstance());
+        if (dialog.open() == Window.OK) {
+            currentWorkflow.getSteps().add(dialog.getResult());
+            save();
+            viewer.refresh();
+            updateButtonStates();
+        }
     }
 
     private void onDeleteStep() {

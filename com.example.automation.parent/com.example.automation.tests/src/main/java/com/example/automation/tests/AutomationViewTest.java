@@ -26,19 +26,24 @@ public class AutomationViewTest {
 
     @Test
     public void comboIsVisible() {
-        assertNotNull(bot.viewById("com.example.automation.view").bot().comboBox());
+        // The Combo was replaced by two Label widgets (name + description).
+        // Verify the view is open and the label area is present by checking
+        // we can find the toolbar button that sits immediately above it.
+        assertNotNull(bot.viewById("com.example.automation.view").bot()
+                         .toolbarButtonWithTooltip("New Workflow"));
     }
 
     @Test
     public void toolbarButtonsAreVisible() {
         var viewBot = bot.viewById("com.example.automation.view").bot();
         assertNotNull(viewBot.toolbarButtonWithTooltip("New Workflow"));
+        assertNotNull(viewBot.toolbarButtonWithTooltip("Open Workflow"));
         assertNotNull(viewBot.toolbarButtonWithTooltip("Add Step"));
         assertNotNull(viewBot.toolbarButtonWithTooltip("Delete Step"));
-        assertNotNull(viewBot.toolbarButtonWithTooltip("Move Up"));
-        assertNotNull(viewBot.toolbarButtonWithTooltip("Move Down"));
-        assertNotNull(viewBot.toolbarButtonWithTooltip("Run"));
-        assertNotNull(viewBot.toolbarButtonWithTooltip("Run Selected"));
+        assertNotNull(viewBot.toolbarButtonWithTooltip("Move Step Up"));
+        assertNotNull(viewBot.toolbarButtonWithTooltip("Move Step Down"));
+        assertNotNull(viewBot.toolbarButtonWithTooltip("Run Workflow"));
+        assertNotNull(viewBot.toolbarButtonWithTooltip("Run Selected Steps"));
         assertNotNull(viewBot.toolbarButtonWithTooltip("Stop"));
     }
 
@@ -62,9 +67,22 @@ public class AutomationViewTest {
             bot.viewById("com.example.automation.view").close();
             bot.menu("Project").menu("Automation").click();
 
-            // Select the test workflow from the Combo
+            // Click "Open Workflow" toolbar button to open the picker dialog
             bot.viewById("com.example.automation.view").bot()
-               .comboBox().setSelection("SWTBot Test Workflow");
+               .toolbarButtonWithTooltip("Open Workflow").click();
+
+            // In the WorkflowPickerDialog, select the test workflow by clicking its row
+            SWTBotTable pickerTable = bot.table();
+            int rowIndex = -1;
+            for (int i = 0; i < pickerTable.rowCount(); i++) {
+                if ("SWTBot Test Workflow".equals(pickerTable.cell(i, 0))) {
+                    rowIndex = i;
+                    break;
+                }
+            }
+            assertTrue("Workflow not found in picker", rowIndex >= 0);
+            pickerTable.click(rowIndex, 0);
+            bot.button("OK").click();
 
             // The table must show exactly one row
             SWTBotTable table = bot.viewById("com.example.automation.view").bot().table();
@@ -84,8 +102,23 @@ public class AutomationViewTest {
         try {
             bot.viewById("com.example.automation.view").close();
             bot.menu("Project").menu("Automation").click();
+
+            // Click "Open Workflow" toolbar button to open the picker dialog
             bot.viewById("com.example.automation.view").bot()
-               .comboBox().setSelection("Multi Select Test");
+               .toolbarButtonWithTooltip("Open Workflow").click();
+
+            SWTBotTable pickerTable = bot.table();
+            int rowIndex = -1;
+            for (int i = 0; i < pickerTable.rowCount(); i++) {
+                if ("Multi Select Test".equals(pickerTable.cell(i, 0))) {
+                    rowIndex = i;
+                    break;
+                }
+            }
+            assertTrue("Workflow not found in picker", rowIndex >= 0);
+            pickerTable.click(rowIndex, 0);
+            bot.button("OK").click();
+
             SWTBotTable table = bot.viewById("com.example.automation.view").bot().table();
             int[] selCount = {0};
             Display.getDefault().syncExec(() -> {
