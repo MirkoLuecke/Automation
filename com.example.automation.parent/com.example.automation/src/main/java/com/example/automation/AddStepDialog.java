@@ -38,6 +38,12 @@ public class AddStepDialog extends TitleAreaDialog {
     }
 
     @Override
+    protected void configureShell(Shell newShell) {
+        super.configureShell(newShell);
+        newShell.setText("Add Step");
+    }
+
+    @Override
     protected boolean isResizable() { return true; }
 
     @Override
@@ -63,7 +69,8 @@ public class AddStepDialog extends TitleAreaDialog {
         descCol.getColumn().setWidth(350);
         descCol.setLabelProvider(new ColumnLabelProvider() {
             @Override public String getText(Object element) {
-                return ((IAction) element).getDescription();
+                String desc = ((IAction) element).getDescription();
+                return desc == null ? "" : desc;
             }
         });
 
