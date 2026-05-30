@@ -1,7 +1,13 @@
 package com.example.automation;
 
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.Platform;
+import org.eclipse.core.variables.IStringVariableManager;
+import org.eclipse.core.variables.VariablesPlugin;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
+
+import com.example.automation.preferences.AutomationPreferences;
 
 public class Activator extends AbstractUIPlugin {
 
@@ -13,6 +19,7 @@ public class Activator extends AbstractUIPlugin {
     public void start(BundleContext context) throws Exception {
         super.start(context);
         plugin = this;
+        tryInstallBundledWorkflows();
     }
 
     @Override
@@ -23,5 +30,21 @@ public class Activator extends AbstractUIPlugin {
 
     public static Activator getDefault() {
         return plugin;
+    }
+
+    private void tryInstallBundledWorkflows() {
+        try {
+            IStringVariableManager svm =
+                    VariablesPlugin.getDefault().getStringVariableManager();
+            String resolved = svm.performStringSubstitution(
+                    AutomationPreferences.getWorkflowStoragePath());
+            BundledWorkflowInstaller.installIfNeeded(resolved);
+        } catch (CoreException e) {
+            Platform.getLog(getClass()).info(
+                    "Could not auto-deploy bundled workflows: " + e.getMessage());
+        } catch (Exception e) {
+            Platform.getLog(getClass()).info(
+                    "Could not auto-deploy bundled workflows: " + e.getMessage());
+        }
     }
 }

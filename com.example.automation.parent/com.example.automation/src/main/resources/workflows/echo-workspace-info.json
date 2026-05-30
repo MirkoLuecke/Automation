@@ -1,0 +1,1 @@
+{"workflowId":"echo-workspace-info","displayName":"Echo Workspace Info","description":"Demonstrates Eclipse variable substitution: prints the workspace location to the Automation console.","steps":[{"actionId":"shell-command","config":{"command":"echo Workspace: ${workspace_loc}","workingDir":"${workspace_loc}/.."}}]}
