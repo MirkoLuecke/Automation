@@ -19,19 +19,21 @@ import com.example.automation.model.Workflow;
 public class WorkflowPickerDialog extends TitleAreaDialog {
 
     private final List<Workflow> workflows;
+    private final String storagePath;
     private TableViewer viewer;
     private Workflow result;
 
-    public WorkflowPickerDialog(Shell parent, List<Workflow> workflows) {
+    public WorkflowPickerDialog(Shell parent, List<Workflow> workflows, String storagePath) {
         super(parent);
         this.workflows = workflows;
+        this.storagePath = storagePath;
     }
 
     @Override
     public void create() {
         super.create();
         setTitle("Open Workflow");
-        setMessage("Select a workflow to open.");
+        setMessage("Workflows are loaded from: " + storagePath);
         getButton(OK).setEnabled(false);
     }
 

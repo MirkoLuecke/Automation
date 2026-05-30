@@ -32,6 +32,7 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.ToolBar;
 import org.eclipse.swt.widgets.ToolItem;
 import org.eclipse.ui.ISharedImages;
+import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.console.ConsolePlugin;
 import org.eclipse.ui.console.IConsole;
@@ -182,6 +183,14 @@ public class AutomationView extends ViewPart {
         });
 
         viewer.addSelectionChangedListener(e -> updateButtonStates());
+
+        viewer.addDoubleClickListener(e -> {
+            try {
+                getSite().getPage().showView("org.eclipse.ui.views.PropertySheet");
+            } catch (PartInitException ex) {
+                Platform.getLog(getClass()).error("Failed to show Properties view", ex);
+            }
+        });
     }
 
     private void loadWorkflows() {
@@ -202,7 +211,9 @@ public class AutomationView extends ViewPart {
     }
 
     private void onOpenWorkflow() {
-        WorkflowPickerDialog dialog = new WorkflowPickerDialog(getSite().getShell(), workflows);
+        String storagePath = "(unknown)";
+        try { storagePath = resolvedStorageDir().getAbsolutePath(); } catch (Exception e) {}
+        WorkflowPickerDialog dialog = new WorkflowPickerDialog(getSite().getShell(), workflows, storagePath);
         if (dialog.open() == Window.OK) {
             currentWorkflow = dialog.getResult();
             viewer.setInput(currentWorkflow.getSteps());
@@ -376,10 +387,14 @@ public class AutomationView extends ViewPart {
         return mc;
     }
 
-    private WorkflowRepository repository() throws Exception {
+    private File resolvedStorageDir() throws Exception {
         IStringVariableManager svm = VariablesPlugin.getDefault().getStringVariableManager();
         String resolved = svm.performStringSubstitution(AutomationPreferences.getWorkflowStoragePath());
-        return new WorkflowRepository(new File(resolved));
+        return new File(resolved).getCanonicalFile();
+    }
+
+    private WorkflowRepository repository() throws Exception {
+        return new WorkflowRepository(resolvedStorageDir());
     }
 
     private void save() {
