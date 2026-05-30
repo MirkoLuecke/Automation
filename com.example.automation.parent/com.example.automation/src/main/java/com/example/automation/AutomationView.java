@@ -1,6 +1,6 @@
 package com.example.automation;
 
-import java.io.IOException;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -9,6 +9,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.eclipse.core.runtime.Platform;
+import org.eclipse.core.variables.IStringVariableManager;
+import org.eclipse.core.variables.VariablesPlugin;
 import org.eclipse.debug.ui.DebugUITools;
 import org.eclipse.debug.ui.IDebugUIConstants;
 import org.eclipse.jface.dialogs.MessageDialog;
@@ -39,6 +41,7 @@ import org.eclipse.ui.console.MessageConsoleStream;
 import org.eclipse.ui.part.ViewPart;
 
 import com.example.automation.api.ActionRegistry;
+import com.example.automation.preferences.AutomationPreferences;
 import com.example.automation.model.Step;
 import com.example.automation.model.StepStatus;
 import com.example.automation.model.Workflow;
@@ -183,8 +186,8 @@ public class AutomationView extends ViewPart {
 
     private void loadWorkflows() {
         try {
-            workflows = new WorkflowRepository().list();
-        } catch (IOException e) {
+            workflows = repository().list();
+        } catch (Exception e) {
             Platform.getLog(getClass()).error("Failed to load workflows", e);
             workflows = Collections.emptyList();
         }
@@ -240,7 +243,7 @@ public class AutomationView extends ViewPart {
 
     private void saveNew(Workflow wf) {
         try {
-            new WorkflowRepository().save(wf);
+            repository().save(wf);
         } catch (Exception e) {
             Platform.getLog(getClass()).error("Failed to save new workflow", e);
             MessageDialog.openError(getSite().getShell(), "Error", "Failed to save workflow: " + e.getMessage());
@@ -373,10 +376,16 @@ public class AutomationView extends ViewPart {
         return mc;
     }
 
+    private WorkflowRepository repository() throws Exception {
+        IStringVariableManager svm = VariablesPlugin.getDefault().getStringVariableManager();
+        String resolved = svm.performStringSubstitution(AutomationPreferences.getWorkflowStoragePath());
+        return new WorkflowRepository(new File(resolved));
+    }
+
     private void save() {
         if (currentWorkflow == null) return;
         try {
-            new WorkflowRepository().save(currentWorkflow);
+            repository().save(currentWorkflow);
         } catch (Exception e) {
             Platform.getLog(getClass()).error("Failed to save workflow", e);
         }

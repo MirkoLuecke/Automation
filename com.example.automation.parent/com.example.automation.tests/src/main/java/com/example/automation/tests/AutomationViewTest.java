@@ -1,14 +1,17 @@
 package com.example.automation.tests;
 
 import static org.junit.Assert.*;
-import java.io.IOException;
+import java.io.File;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swtbot.eclipse.finder.SWTWorkbenchBot;
 import org.eclipse.swtbot.swt.finder.exceptions.WidgetNotFoundException;
 import org.eclipse.swtbot.swt.finder.widgets.SWTBotTable;
+import org.eclipse.core.variables.IStringVariableManager;
+import org.eclipse.core.variables.VariablesPlugin;
 import org.junit.*;
 import com.example.automation.model.*;
 import com.example.automation.persistence.WorkflowRepository;
+import com.example.automation.preferences.AutomationPreferences;
 
 public class AutomationViewTest {
 
@@ -22,6 +25,12 @@ public class AutomationViewTest {
         } catch (WidgetNotFoundException e) {
             bot.menu("Project").menu("Automation").click();
         }
+    }
+
+    private static WorkflowRepository testRepo() throws Exception {
+        IStringVariableManager svm = VariablesPlugin.getDefault().getStringVariableManager();
+        String resolved = svm.performStringSubstitution(AutomationPreferences.getWorkflowStoragePath());
+        return new WorkflowRepository(new File(resolved));
     }
 
     @Test
@@ -57,8 +66,8 @@ public class AutomationViewTest {
     }
 
     @Test
-    public void selectingWorkflowShowsSteps() throws IOException {
-        WorkflowRepository repo = new WorkflowRepository();
+    public void selectingWorkflowShowsSteps() throws Exception {
+        WorkflowRepository repo = testRepo();
         Workflow wf = new Workflow("swtbot-test-wf", "SWTBot Test Workflow", "test");
         wf.getSteps().add(new Step("test.action"));
         repo.save(wf);
@@ -93,8 +102,8 @@ public class AutomationViewTest {
     }
 
     @Test
-    public void multipleStepsCanBeSelected() throws IOException {
-        WorkflowRepository repo = new WorkflowRepository();
+    public void multipleStepsCanBeSelected() throws Exception {
+        WorkflowRepository repo = testRepo();
         Workflow wf = new Workflow("multi-select-test-wf", "Multi Select Test", "test");
         wf.getSteps().add(new Step("action.a"));
         wf.getSteps().add(new Step("action.b"));
