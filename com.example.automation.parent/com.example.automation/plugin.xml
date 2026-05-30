@@ -73,4 +73,14 @@
     <action class="com.example.automation.actions.MavenUpdateProjectAction"/>
   </extension>
 
+  <extension point="org.eclipse.ui.preferencePages">
+    <page id="com.example.automation.preferences"
+          name="Automation"
+          class="com.example.automation.preferences.AutomationPreferencePage"/>
+  </extension>
+
+  <extension point="org.eclipse.core.runtime.preferences">
+    <initializer class="com.example.automation.preferences.AutomationPreferenceInitializer"/>
+  </extension>
+
 </plugin>
