@@ -5,8 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.eclipse.core.resources.ResourcesPlugin;
-
 import com.example.automation.api.IAction;
 import com.example.automation.api.IActionContext;
 
@@ -41,7 +39,7 @@ public class ShellCommandAction implements IAction {
             : List.of("sh", "-c", command);
 
         File dir = workingDir.isBlank()
-            ? new File(ResourcesPlugin.getWorkspace().getRoot().getLocation().toOSString())
+            ? new File(context.getWorkingDirectory())
             : new File(workingDir);
 
         ProcessRunner.run(cmd, dir, context);
