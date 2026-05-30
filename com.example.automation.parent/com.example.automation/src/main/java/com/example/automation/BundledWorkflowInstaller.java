@@ -29,6 +29,7 @@ public class BundledWorkflowInstaller {
         Enumeration<URL> entries = bundle.findEntries("workflows", "*.json", false);
         if (entries == null) return;
 
+        boolean allSucceeded = true;
         while (entries.hasMoreElements()) {
             URL url = entries.nextElement();
             String filename = url.getFile().substring(url.getFile().lastIndexOf('/') + 1);
@@ -36,10 +37,13 @@ public class BundledWorkflowInstaller {
             try (InputStream in = url.openStream()) {
                 Files.copy(in, target.toPath(), StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException e) {
+                allSucceeded = false;
                 Platform.getLog(BundledWorkflowInstaller.class)
                         .warn("Could not deploy bundled workflow: " + filename, e);
             }
         }
-        AutomationPreferences.setWorkflowsDeployed(true);
+        if (allSucceeded) {
+            AutomationPreferences.setWorkflowsDeployed(true);
+        }
     }
 }

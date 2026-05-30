@@ -107,7 +107,8 @@ public class WorkflowRunner {
             try {
                 value = svm.performStringSubstitution(value);
             } catch (CoreException e) {
-                // leave unresolved
+                Platform.getLog(WorkflowRunner.class)
+                        .warn("Variable substitution failed for value: " + entry.getValue());
             }
             result.put(entry.getKey(), value);
         }

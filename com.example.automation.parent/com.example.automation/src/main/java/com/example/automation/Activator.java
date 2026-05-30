@@ -1,6 +1,5 @@
 package com.example.automation;
 
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.variables.IStringVariableManager;
 import org.eclipse.core.variables.VariablesPlugin;
@@ -39,11 +38,8 @@ public class Activator extends AbstractUIPlugin {
             String resolved = svm.performStringSubstitution(
                     AutomationPreferences.getWorkflowStoragePath());
             BundledWorkflowInstaller.installIfNeeded(resolved);
-        } catch (CoreException e) {
-            Platform.getLog(getClass()).info(
-                    "Could not auto-deploy bundled workflows: " + e.getMessage());
         } catch (Exception e) {
-            Platform.getLog(getClass()).info(
+            Platform.getLog(getClass()).warn(
                     "Could not auto-deploy bundled workflows: " + e.getMessage());
         }
     }
