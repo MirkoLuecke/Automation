@@ -1,7 +1,7 @@
 package com.example.automation;
 
+import java.io.OutputStream;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,15 +37,15 @@ public class WorkflowRunner {
                           Consumer<Runnable> uiExec,
                           Runnable onRefresh,
                           Runnable onDone,
-                          PrintStream stdout,
-                          PrintStream stderr) {
+                          OutputStream stdout,
+                          OutputStream stderr) {
         this.steps     = steps;
         this.registry  = registry;
         this.uiExec    = uiExec;
         this.onRefresh = onRefresh;
         this.onDone    = onDone;
-        this.stdout    = stdout;
-        this.stderr    = stderr;
+        this.stdout    = stdout instanceof PrintStream ? (PrintStream) stdout : new PrintStream(stdout);
+        this.stderr    = stderr instanceof PrintStream ? (PrintStream) stderr : new PrintStream(stderr);
     }
 
     public void start() {
@@ -66,22 +66,23 @@ public class WorkflowRunner {
 
         for (Step step : steps) {
             if (cancelled) break;
-            setStatus(step, StepStatus.RUNNING);
+            setStatus(step, StepStatus.YELLOW);
             Map<String, String> resolvedConfig = resolveConfig(step.getConfig(), svm);
-            IAction action = registry.get(step.getActionId());
+            IAction action = registry.getAction(step.getActionId());
             if (action == null) {
                 stderr.println("Unknown action: " + step.getActionId());
-                setStatus(step, StepStatus.FAILED);
-                continue;
+                setStatus(step, StepStatus.RED);
+                break;
             }
             try {
-                action.execute(new ActionContextImpl(resolvedConfig, workingDir,
-                        step, stdout, stderr, uiExec));
-                if (!cancelled) setStatus(step, StepStatus.DONE);
+                action.execute(resolvedConfig, new ActionContextImpl(resolvedConfig, workingDir,
+                        step, stdout, stderr, uiExec, () -> cancelled));
+                if (!cancelled) setStatus(step, StepStatus.GREEN);
             } catch (Exception e) {
                 Platform.getLog(WorkflowRunner.class).error("Step failed", e);
                 stderr.println("Step failed: " + e.getMessage());
-                setStatus(step, StepStatus.FAILED);
+                setStatus(step, StepStatus.RED);
+                break;
             }
         }
         uiExec.accept(onDone);
@@ -125,23 +126,30 @@ public class WorkflowRunner {
         private final PrintStream stdout;
         private final PrintStream stderr;
         private final Consumer<Runnable> uiExec;
+        private final java.util.function.BooleanSupplier cancelledSupplier;
 
         ActionContextImpl(Map<String, String> config, String workingDirectory,
                           Step step, PrintStream stdout, PrintStream stderr,
-                          Consumer<Runnable> uiExec) {
-            this.config           = config;
-            this.workingDirectory = workingDirectory;
-            this.step             = step;
-            this.stdout           = stdout;
-            this.stderr           = stderr;
-            this.uiExec           = uiExec;
+                          Consumer<Runnable> uiExec,
+                          java.util.function.BooleanSupplier cancelledSupplier) {
+            this.config             = config;
+            this.workingDirectory   = workingDirectory;
+            this.step               = step;
+            this.stdout             = stdout;
+            this.stderr             = stderr;
+            this.uiExec             = uiExec;
+            this.cancelledSupplier  = cancelledSupplier;
         }
 
-        @Override public Map<String, String> getConfig() { return config; }
-        @Override public String getWorkingDirectory()    { return workingDirectory; }
-        @Override public Step getStep()                  { return step; }
-        @Override public PrintStream getStdout()         { return stdout; }
-        @Override public PrintStream getStderr()         { return stderr; }
+        @Override public Map<String, String> getConfig()    { return config; }
+        @Override public String getWorkingDirectory()      { return workingDirectory; }
+        @Override public Step getStep()                    { return step; }
+        @Override public PrintStream getStdout()           { return stdout; }
+        @Override public PrintStream getStderr()           { return stderr; }
+        @Override public OutputStream getOutputStream()    { return stdout; }
+        @Override public OutputStream getErrorStream()     { return stderr; }
         @Override public Consumer<Runnable> getUiExecutor() { return uiExec; }
+        @Override public boolean isCancelled()             { return cancelledSupplier.getAsBoolean(); }
+        @Override public void setProgress(int percent)     { step.setProgress(percent); }
     }
 }
