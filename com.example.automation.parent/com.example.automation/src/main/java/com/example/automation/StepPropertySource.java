@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.views.properties.IPropertyDescriptor;
 import org.eclipse.ui.views.properties.IPropertySource;
 import org.eclipse.ui.views.properties.PropertyDescriptor;
@@ -34,7 +35,7 @@ public class StepPropertySource implements IPropertySource {
         actionDesc.setCategory("Step");
         list.add(actionDesc);
         for (String key : configKeys()) {
-            TextPropertyDescriptor d = new TextPropertyDescriptor(key, key);
+            PropertyDescriptor d = createConfigDescriptor(key);
             d.setCategory("Config");
             list.add(d);
         }
@@ -85,6 +86,18 @@ public class StepPropertySource implements IPropertySource {
     @Override
     public Object getEditableValue() {
         return null;
+    }
+
+    private PropertyDescriptor createConfigDescriptor(String key) {
+        if ("shell-command".equals(step.getActionId()) && "command".equals(key)) {
+            return new PropertyDescriptor(key, key) {
+                @Override
+                public org.eclipse.jface.viewers.CellEditor createPropertyEditor(Composite parent) {
+                    return new MultiLineTextCellEditor(parent);
+                }
+            };
+        }
+        return new TextPropertyDescriptor(key, key);
     }
 
     private List<String> configKeys() {
