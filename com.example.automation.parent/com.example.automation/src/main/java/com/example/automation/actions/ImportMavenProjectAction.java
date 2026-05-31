@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.eclipse.core.resources.IProject;
-import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Platform;
@@ -65,25 +64,15 @@ public class ImportMavenProjectAction implements IAction {
             new ProjectImportConfiguration(),
             new NullProgressMonitor());
 
-        IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
         IProjectConfigurationManager configManager = MavenPlugin.getProjectConfigurationManager();
-        for (MavenProjectInfo info : flatten(projects)) {
-            String name = info.getModel().getArtifactId();
-            IProject project = root.getProject(name);
-            if (project != null && project.exists() && project.isOpen()) {
-                configManager.updateProjectConfiguration(project, new NullProgressMonitor());
-                context.getStdout().println("Configured: " + name);
-            }
+        for (IProject project : ResourcesPlugin.getWorkspace().getRoot().getProjects()) {
+            try {
+                if (project.isOpen() && project.hasNature("org.eclipse.m2e.core.maven2Nature")) {
+                    configManager.updateProjectConfiguration(project, new NullProgressMonitor());
+                    context.getStdout().println("Configured: " + project.getName());
+                }
+            } catch (Exception ignored) {}
         }
         context.setProgress(100);
-    }
-
-    private List<MavenProjectInfo> flatten(List<MavenProjectInfo> projects) {
-        List<MavenProjectInfo> result = new ArrayList<>();
-        for (MavenProjectInfo p : projects) {
-            result.add(p);
-            result.addAll(flatten(new ArrayList<>(p.getProjects())));
-        }
-        return result;
     }
 }
