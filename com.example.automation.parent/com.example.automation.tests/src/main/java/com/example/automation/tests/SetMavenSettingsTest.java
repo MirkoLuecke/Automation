@@ -1,0 +1,32 @@
+package com.example.automation.tests;
+
+import static org.junit.Assert.*;
+
+import java.util.List;
+import java.util.Map;
+
+import org.junit.Test;
+
+import com.example.automation.actions.SetMavenSettingsAction;
+
+public class SetMavenSettingsTest {
+
+    @Test
+    public void validate_rejectsBlankFilePath() {
+        List<String> errors = new SetMavenSettingsAction().validate(Map.of("filePath", ""));
+        assertFalse(errors.isEmpty());
+    }
+
+    @Test
+    public void validate_acceptsNonBlankFilePath() {
+        List<String> errors = new SetMavenSettingsAction().validate(
+            Map.of("filePath", "/path/to/settings.xml"));
+        assertTrue(errors.isEmpty());
+    }
+
+    @Test
+    public void defaultConfig_containsFilePathKey() {
+        Map<String, String> cfg = new SetMavenSettingsAction().getDefaultConfig();
+        assertTrue(cfg.containsKey("filePath"));
+    }
+}
