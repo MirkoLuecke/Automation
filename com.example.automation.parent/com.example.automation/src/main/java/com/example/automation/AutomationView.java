@@ -60,7 +60,7 @@ public class AutomationView extends ViewPart {
     private List<Workflow> workflows = Collections.emptyList();
     private Workflow currentWorkflow;
 
-    private ToolItem newWorkflowItem, openWorkflowItem;
+    private ToolItem newWorkflowItem, editWorkflowItem, openWorkflowItem;
     private ToolItem addStepItem, deleteStepItem, moveUpItem, moveDownItem;
     private ToolItem runItem, runSelectedItem, stopItem;
 
@@ -111,6 +111,11 @@ public class AutomationView extends ViewPart {
             shared.getImage(ISharedImages.IMG_TOOL_NEW_WIZARD),
             SelectionListener.widgetSelectedAdapter(e -> onNew()));
 
+        Image editImg = Activator.getDefault().getImageRegistry().get(Activator.IMG_EDIT);
+        if (editImg == null) editImg = shared.getImage(ISharedImages.IMG_TOOL_REDO);
+        editWorkflowItem = makeButton(bar, "Edit Workflow", editImg,
+            SelectionListener.widgetSelectedAdapter(e -> onEditWorkflow()));
+
         openWorkflowItem = makeButton(bar, "Open Workflow",
             shared.getImage(ISharedImages.IMG_OBJ_FOLDER),
             SelectionListener.widgetSelectedAdapter(e -> onOpenWorkflow()));
@@ -126,8 +131,10 @@ public class AutomationView extends ViewPart {
         moveUpItem = makeButton(bar, "Move Step Up",
             shared.getImage(ISharedImages.IMG_TOOL_UP),
             SelectionListener.widgetSelectedAdapter(e -> onMoveUp()));
-        moveDownItem = makeButton(bar, "Move Step Down",
-            shared.getImage(ISharedImages.IMG_TOOL_FORWARD),
+
+        Image downImg = Activator.getDefault().getImageRegistry().get(Activator.IMG_DOWN_NAV);
+        if (downImg == null) downImg = shared.getImage(ISharedImages.IMG_TOOL_FORWARD);
+        moveDownItem = makeButton(bar, "Move Step Down", downImg,
             SelectionListener.widgetSelectedAdapter(e -> onMoveDown()));
 
         new ToolItem(bar, SWT.SEPARATOR);
@@ -135,9 +142,12 @@ public class AutomationView extends ViewPart {
         runItem = makeButton(bar, "Run Workflow",
             DebugUITools.getImage(IDebugUIConstants.IMG_ACT_RUN),
             SelectionListener.widgetSelectedAdapter(e -> onRun()));
-        runSelectedItem = makeButton(bar, "Run Selected Steps",
-            DebugUITools.getImage(IDebugUIConstants.IMG_ACT_RUN),
+
+        Image runSelImg = Activator.getDefault().getImageRegistry().get(Activator.IMG_RUN_SELECTED);
+        if (runSelImg == null) runSelImg = DebugUITools.getImage(IDebugUIConstants.IMG_ACT_RUN);
+        runSelectedItem = makeButton(bar, "Run Selected Steps", runSelImg,
             SelectionListener.widgetSelectedAdapter(e -> onRunSelected()));
+
         stopItem = makeButton(bar, "Stop",
             shared.getImage(ISharedImages.IMG_ELCL_STOP),
             SelectionListener.widgetSelectedAdapter(e -> onStop()));
@@ -222,6 +232,27 @@ public class AutomationView extends ViewPart {
         }
     }
 
+    private void onEditWorkflow() {
+        if (currentWorkflow == null) return;
+        Set<String> existingIds = workflows.stream()
+            .map(Workflow::getWorkflowId)
+            .filter(id -> !id.equals(currentWorkflow.getWorkflowId()))
+            .collect(Collectors.toSet());
+        NewWorkflowDialog dialog = new NewWorkflowDialog(getSite().getShell(), existingIds, currentWorkflow);
+        if (dialog.open() == Window.OK) {
+            try {
+                repository().save(currentWorkflow);
+            } catch (Exception e) {
+                Platform.getLog(getClass()).error("Failed to save workflow", e);
+                MessageDialog.openError(getSite().getShell(), "Error",
+                    "Failed to save workflow: " + e.getMessage());
+                return;
+            }
+            updateHeader();
+            updateButtonStates();
+        }
+    }
+
     private void updateButtonStates() {
         boolean hasWorkflow = currentWorkflow != null;
         IStructuredSelection sel = viewer.getStructuredSelection();
@@ -232,6 +263,7 @@ public class AutomationView extends ViewPart {
         boolean running = activeRunner != null;
 
         newWorkflowItem.setEnabled(!running);
+        editWorkflowItem.setEnabled(!running && hasWorkflow);
         openWorkflowItem.setEnabled(!running && !workflows.isEmpty());
         addStepItem.setEnabled(!running && hasWorkflow);
         deleteStepItem.setEnabled(!running && hasStep);
