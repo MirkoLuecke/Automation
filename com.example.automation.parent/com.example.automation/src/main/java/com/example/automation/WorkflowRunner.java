@@ -76,7 +76,7 @@ public class WorkflowRunner {
             }
             try {
                 action.execute(resolvedConfig, new ActionContextImpl(resolvedConfig, workingDir,
-                        step, stdout, stderr, uiExec, () -> cancelled));
+                        step, stdout, stderr, uiExec, onRefresh, () -> cancelled));
                 if (!cancelled) setStatus(step, StepStatus.GREEN);
             } catch (Exception e) {
                 Platform.getLog(WorkflowRunner.class).error("Step failed", e);
@@ -127,11 +127,12 @@ public class WorkflowRunner {
         private final PrintStream stdout;
         private final PrintStream stderr;
         private final Consumer<Runnable> uiExec;
+        private final Runnable onRefresh;
         private final java.util.function.BooleanSupplier cancelledSupplier;
 
         ActionContextImpl(Map<String, String> config, String workingDirectory,
                           Step step, PrintStream stdout, PrintStream stderr,
-                          Consumer<Runnable> uiExec,
+                          Consumer<Runnable> uiExec, Runnable onRefresh,
                           java.util.function.BooleanSupplier cancelledSupplier) {
             this.config             = config;
             this.workingDirectory   = workingDirectory;
@@ -139,6 +140,7 @@ public class WorkflowRunner {
             this.stdout             = stdout;
             this.stderr             = stderr;
             this.uiExec             = uiExec;
+            this.onRefresh          = onRefresh;
             this.cancelledSupplier  = cancelledSupplier;
         }
 
@@ -151,6 +153,6 @@ public class WorkflowRunner {
         @Override public OutputStream getErrorStream()     { return stderr; }
         @Override public Consumer<Runnable> getUiExecutor() { return uiExec; }
         @Override public boolean isCancelled()             { return cancelledSupplier.getAsBoolean(); }
-        @Override public void setProgress(int percent)     { step.setProgress(percent); }
+        @Override public void setProgress(int percent)     { step.setProgress(percent); uiExec.accept(onRefresh); }
     }
 }
