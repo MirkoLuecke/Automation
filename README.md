@@ -137,13 +137,12 @@ Checks out a branch in an existing local repository.
 
 ### Maven Run with Progress
 
-Launches an existing Eclipse Maven launch configuration and monitors its output for build progress.
+Runs a Maven build from the command line and tracks progress from output. On Windows: `powershell.exe -NonInteractive -Command mvn <goals>`. On Linux/macOS: `sh -c mvn <goals>`.
 
 | Field | Required | Description |
 |---|---|---|
-| `configName` | Yes | Name of an Eclipse launch configuration (as shown in **Run > Run Configurations…**). |
-
-Requires M2E (Maven Integration for Eclipse) to be installed.
+| `goals` | Yes | Maven goals and arguments, e.g. `clean install` or `-s /path/settings.xml clean install`. Eclipse variables are supported. |
+| `workingDir` | No | Working directory. If blank, uses the **Default working directory** from the preference page. Eclipse variables are supported. |
 
 ### Maven Update Project
 
@@ -194,6 +193,16 @@ Writes text content to a file. Creates parent directories if they do not already
 |---|---|---|
 | `filePath` | Yes | Path to the file to write. Eclipse variables are supported. |
 | `content` | No | Text content to write. Eclipse variables are supported. Multi-line content is supported via the built-in multi-line editor. |
+
+### Set Maven Settings
+
+Sets the Maven user settings file in Eclipse's M2E configuration. Equivalent to changing the **User Settings** field in **Window > Preferences > Maven**.
+
+| Field | Required | Description |
+|---|---|---|
+| `filePath` | Yes | Path to the settings.xml file. Eclipse variables are supported. |
+
+Requires M2E (Maven Integration for Eclipse) to be installed.
 
 ---
 
@@ -255,7 +264,7 @@ The plugin ships with sample workflows that are automatically copied to your wor
 
 | Workflow | Description |
 |---|---|
-| Setup Automation Plugin | Clones the Automation plugin repository next to the workspace, creates a project-local Maven settings file, imports the Maven project into Eclipse, runs `mvn clean install`, updates the Maven project configuration, and refreshes the workspace. |
+| Setup Automation Plugin | Clones the Automation plugin repository next to the workspace, creates a project-local Maven settings file, configures Eclipse Maven settings, imports the Maven project into Eclipse, runs a full Maven build, updates the Maven project configuration, and refreshes the workspace. |
 
 If automatic deployment fails (e.g., the storage directory is not writable at startup), open **Window > Preferences > Automation** and click **Deploy bundled workflows**.
 

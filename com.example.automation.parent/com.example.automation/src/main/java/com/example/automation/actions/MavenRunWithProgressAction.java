@@ -1,18 +1,15 @@
 package com.example.automation.actions;
 
+import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
-
-import org.eclipse.debug.core.DebugPlugin;
-import org.eclipse.debug.core.ILaunch;
-import org.eclipse.debug.core.ILaunchConfiguration;
-import org.eclipse.debug.core.ILaunchManager;
-import org.eclipse.debug.core.model.IProcess;
+import java.util.concurrent.TimeUnit;
 
 import com.example.automation.api.IAction;
 import com.example.automation.api.IActionContext;
@@ -21,105 +18,78 @@ public class MavenRunWithProgressAction implements IAction {
 
     @Override public String getId()          { return "maven-run-with-progress"; }
     @Override public String getName()        { return "Maven Run with Progress"; }
-    @Override public String getDescription() { return "Executes a Maven launch configuration and parses progress from console output."; }
+    @Override public String getDescription() {
+        return "Runs a Maven build from the command line and tracks progress from output. Uses powershell.exe on Windows and sh on Linux/macOS.";
+    }
 
     @Override
-    public Map<String, String> getDefaultConfig() { return Map.of("configName", ""); }
+    public Map<String, String> getDefaultConfig() {
+        return Map.of("goals", "", "workingDir", "");
+    }
 
     @Override
     public List<String> validate(Map<String, String> config) {
         List<String> errors = new ArrayList<>();
-        if (config.getOrDefault("configName", "").isBlank())
-            errors.add("configName must not be blank");
+        if (config.getOrDefault("goals", "").isBlank())
+            errors.add("goals must not be blank");
         return errors;
     }
 
     @Override
     public void execute(Map<String, String> config, IActionContext context) throws Exception {
-        new Execution(config.get("configName"), context).run();
-    }
+        String goals = config.getOrDefault("goals", "");
+        if (goals.isBlank()) throw new IllegalArgumentException("goals must not be blank");
+        String workingDir = config.getOrDefault("workingDir", "");
+        File dir = workingDir.isBlank()
+            ? new File(context.getWorkingDirectory())
+            : new File(workingDir);
 
-    private static class Execution {
-        private final String configName;
-        private final IActionContext context;
-        private final MavenProgressParser parser = new MavenProgressParser();
-        private final StringBuilder lineBuffer   = new StringBuilder();
-        private volatile boolean buildFailed     = false;
+        List<String> cmd = ShellCommandAction.buildCommand("mvn " + goals);
+        ProcessBuilder pb = new ProcessBuilder(cmd);
+        pb.directory(dir);
+        context.setProgress(0);
+        Process process = pb.start();
 
-        Execution(String configName, IActionContext context) {
-            this.configName = configName;
-            this.context    = context;
-        }
+        MavenProgressParser parser = new MavenProgressParser();
+        boolean[] buildFailed = {false};
 
-        void run() throws Exception {
-            if (configName == null || configName.isBlank())
-                throw new IllegalArgumentException("configName must not be blank");
-
-            ILaunchManager mgr = DebugPlugin.getDefault().getLaunchManager();
-            ILaunchConfiguration launchConfig = null;
-            for (ILaunchConfiguration c : mgr.getLaunchConfigurations()) {
-                if (configName.equals(c.getName())) { launchConfig = c; break; }
-            }
-            if (launchConfig == null)
-                throw new Exception("Launch configuration not found: " + configName);
-
-            context.setProgress(0);
-            ILaunch launch = launchConfig.launch(ILaunchManager.RUN_MODE, null, false, true);
-
-            for (IProcess process : launch.getProcesses()) {
-                OutputStream err = context.getErrorStream();
-                process.getStreamsProxy().getOutputStreamMonitor()
-                    .addListener((text, mon) -> onOutput(text));
-                process.getStreamsProxy().getErrorStreamMonitor()
-                    .addListener((text, mon) -> writeQuietly(err, text));
-                onOutput(process.getStreamsProxy().getOutputStreamMonitor().getContents());
-            }
-
-            while (!launch.isTerminated()) {
-                if (context.isCancelled()) { launch.terminate(); return; }
-                Thread.sleep(100);
-            }
-
-            flushBuffer();
-
-            if (buildFailed) throw new Exception("Maven build failed.");
-            for (IProcess process : launch.getProcesses()) {
-                if (process.getExitValue() != 0)
-                    throw new Exception("Maven run failed with exit code " + process.getExitValue());
-            }
-            context.setProgress(100);
-        }
-
-        private void onOutput(String text) {
-            writeQuietly(context.getOutputStream(), text);
-            synchronized (lineBuffer) {
-                lineBuffer.append(text);
-                int idx;
-                while ((idx = lineBuffer.indexOf("\n")) >= 0) {
-                    String line = lineBuffer.substring(0, idx).stripTrailing();
-                    lineBuffer.delete(0, idx + 1);
-                    processLine(line);
+        Thread stdoutThread = new Thread(() -> {
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    context.getStdout().println(line);
+                    if (line.contains("BUILD FAILURE")) buildFailed[0] = true;
+                    OptionalInt progress = parser.parse(line);
+                    if (progress.isPresent()) context.setProgress(progress.getAsInt());
                 }
+            } catch (IOException ignored) {}
+        });
+
+        Thread stderrThread = new Thread(() -> {
+            try { process.getErrorStream().transferTo(context.getErrorStream()); }
+            catch (IOException ignored) {}
+        });
+
+        stdoutThread.setDaemon(true);
+        stderrThread.setDaemon(true);
+        stdoutThread.start();
+        stderrThread.start();
+
+        while (!process.waitFor(100, TimeUnit.MILLISECONDS)) {
+            if (context.isCancelled()) {
+                process.destroyForcibly();
+                stdoutThread.join();
+                stderrThread.join();
+                return;
             }
         }
+        stdoutThread.join();
+        stderrThread.join();
 
-        private void processLine(String line) {
-            if (line.contains("BUILD FAILURE")) buildFailed = true;
-            OptionalInt progress = parser.parse(line);
-            if (progress.isPresent()) context.setProgress(progress.getAsInt());
-        }
-
-        private void flushBuffer() {
-            String remaining;
-            synchronized (lineBuffer) {
-                remaining = lineBuffer.toString().stripTrailing();
-            }
-            if (!remaining.isEmpty()) processLine(remaining);
-        }
-
-        private static void writeQuietly(OutputStream out, String text) {
-            if (text == null || text.isEmpty()) return;
-            try { out.write(text.getBytes(StandardCharsets.UTF_8)); } catch (IOException ignored) {}
-        }
+        if (buildFailed[0]) throw new Exception("Maven build failed.");
+        int exit = process.exitValue();
+        if (exit != 0) throw new Exception("mvn exited with code " + exit);
+        context.setProgress(100);
     }
 }
