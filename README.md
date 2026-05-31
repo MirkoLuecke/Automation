@@ -109,7 +109,7 @@ The Properties View shows two sections:
 
 ### Shell Command
 
-Executes a shell command. On Windows: `cmd.exe /c <command>`. On Linux/macOS: `sh -c <command>`.
+Executes a shell command. On Windows: `powershell.exe -NonInteractive -Command <command>`. On Linux/macOS: `sh -c <command>`.
 
 | Field | Required | Description |
 |---|---|---|
