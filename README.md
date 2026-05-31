@@ -264,7 +264,7 @@ The plugin ships with sample workflows that are automatically copied to your wor
 
 | Workflow | Description |
 |---|---|
-| Setup Automation Plugin | Clones the Automation plugin repository next to the workspace, creates a project-local Maven settings file, imports the Maven project into Eclipse, runs `mvn clean install`, updates the Maven project configuration, and refreshes the workspace. |
+| Setup Automation Plugin | Clones the Automation plugin repository next to the workspace, creates a project-local Maven settings file, configures Eclipse Maven settings, imports the Maven project into Eclipse, runs a full Maven build, updates the Maven project configuration, and refreshes the workspace. |
 
 If automatic deployment fails (e.g., the storage directory is not writable at startup), open **Window > Preferences > Automation** and click **Deploy bundled workflows**.
 
