@@ -93,8 +93,8 @@ public class NewWorkflowDialog extends TitleAreaDialog {
                 if (toEdit == null) {
                     String id = deriveId(name, existingIds);
                     idPreviewLabel.setText("ID: " + id);
-                    setMessage("");
                 }
+                setMessage(null);
                 getButton(OK).setEnabled(true);
             }
         });
