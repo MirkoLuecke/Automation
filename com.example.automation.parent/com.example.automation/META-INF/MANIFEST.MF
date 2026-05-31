@@ -24,5 +24,5 @@ Export-Package: com.example.automation,
  com.example.automation.api,
  com.example.automation.model,
  com.example.automation.persistence,
- com.example.automation.actions,
+ com.example.automation.actions;x-internal:=true,
  com.example.automation.preferences
