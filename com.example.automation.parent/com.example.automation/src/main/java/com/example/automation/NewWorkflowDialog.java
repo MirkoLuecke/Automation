@@ -17,22 +17,43 @@ import com.example.automation.model.Workflow;
 public class NewWorkflowDialog extends TitleAreaDialog {
 
     private final Set<String> existingIds;
+    private final Workflow toEdit;
     private Text nameText;
     private Text descriptionText;
     private Label idPreviewLabel;
     private Workflow result;
 
     public NewWorkflowDialog(Shell parent, Set<String> existingIds) {
+        this(parent, existingIds, null);
+    }
+
+    public NewWorkflowDialog(Shell parent, Set<String> existingIds, Workflow toEdit) {
         super(parent);
         this.existingIds = existingIds;
+        this.toEdit = toEdit;
+    }
+
+    @Override
+    protected void configureShell(Shell shell) {
+        super.configureShell(shell);
+        shell.setText(toEdit == null ? "New Workflow" : "Edit Workflow");
     }
 
     @Override
     public void create() {
         super.create();
-        setTitle("New Workflow");
-        setMessage("Enter a display name.");
-        getButton(OK).setEnabled(false);
+        if (toEdit == null) {
+            setTitle("New Workflow");
+            setMessage("Enter a display name.");
+            getButton(OK).setEnabled(false);
+        } else {
+            setTitle("Edit Workflow");
+            setMessage("Edit the name and description of the workflow.");
+            nameText.setText(toEdit.getDisplayName() != null ? toEdit.getDisplayName() : "");
+            descriptionText.setText(toEdit.getDescription() != null ? toEdit.getDescription() : "");
+            idPreviewLabel.setText("ID: " + toEdit.getWorkflowId() + " (unchanged)");
+            getButton(OK).setEnabled(!nameText.getText().trim().isEmpty());
+        }
     }
 
     @Override
@@ -66,12 +87,14 @@ public class NewWorkflowDialog extends TitleAreaDialog {
             String name = nameText.getText().trim();
             if (name.isEmpty()) {
                 setMessage("Enter a display name.");
-                idPreviewLabel.setText("");
+                if (toEdit == null) idPreviewLabel.setText("");
                 getButton(OK).setEnabled(false);
             } else {
-                String id = deriveId(name, existingIds);
-                idPreviewLabel.setText("ID: " + id);
-                setMessage("");
+                if (toEdit == null) {
+                    String id = deriveId(name, existingIds);
+                    idPreviewLabel.setText("ID: " + id);
+                    setMessage("");
+                }
                 getButton(OK).setEnabled(true);
             }
         });
@@ -82,14 +105,24 @@ public class NewWorkflowDialog extends TitleAreaDialog {
     @Override
     protected void okPressed() {
         String name = nameText.getText().trim();
-        String id = deriveId(name, existingIds);
         String description = descriptionText.getText().trim();
-        result = new Workflow(id, name, description);
+        if (toEdit != null) {
+            result = applyEdits(toEdit, name, description);
+        } else {
+            String id = deriveId(name, existingIds);
+            result = new Workflow(id, name, description);
+        }
         super.okPressed();
     }
 
     public Workflow getResult() {
         return result;
+    }
+
+    public static Workflow applyEdits(Workflow toEdit, String name, String description) {
+        toEdit.setDisplayName(name);
+        toEdit.setDescription(description);
+        return toEdit;
     }
 
     public static String deriveId(String displayName, Set<String> existingIds) {
