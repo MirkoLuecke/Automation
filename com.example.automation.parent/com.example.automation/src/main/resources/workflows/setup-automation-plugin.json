@@ -1,0 +1,51 @@
+{
+  "workflowId": "setup-automation-plugin",
+  "displayName": "Setup Automation Plugin",
+  "description": "Clones the Automation plugin repository next to the workspace, creates a project-local Maven settings file, imports the Maven project into Eclipse, runs a full Maven build, updates the Maven project configuration, and refreshes the workspace.",
+  "steps": [
+    {
+      "actionId": "shell-command",
+      "config": {
+        "command": "echo Working directory: ${workspace_loc}/..",
+        "workingDir": "${workspace_loc}/.."
+      }
+    },
+    {
+      "actionId": "write-file",
+      "config": {
+        "filePath": "${workspace_loc}/../settings.xml",
+        "content": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<settings xmlns=\"http://maven.apache.org/SETTINGS/1.0.0\"\n          xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n          xsi:schemaLocation=\"http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd\">\n  <localRepository>${workspace_loc}/../.m2/repository</localRepository>\n</settings>"
+      }
+    },
+    {
+      "actionId": "git-clone",
+      "config": {
+        "url": "https://github.com/MirkoLuecke/Automation",
+        "targetDir": "${workspace_loc}/../Automation"
+      }
+    },
+    {
+      "actionId": "import-maven-project",
+      "config": {
+        "pomPath": "${workspace_loc}/../Automation/com.example.automation.parent/pom.xml"
+      }
+    },
+    {
+      "actionId": "shell-command",
+      "config": {
+        "command": "mvn -s ${workspace_loc}/../settings.xml clean install",
+        "workingDir": "${workspace_loc}/../Automation/com.example.automation.parent"
+      }
+    },
+    {
+      "actionId": "maven-update-project",
+      "config": {
+        "projectName": "com.example.automation.parent"
+      }
+    },
+    {
+      "actionId": "refresh-all",
+      "config": {}
+    }
+  ]
+}

@@ -1,1 +1,0 @@
-{"workflowId":"refresh-workspace","displayName":"Refresh Workspace","description":"Refreshes all projects in the Eclipse workspace.","steps":[{"actionId":"refresh-all","config":{}}]}
