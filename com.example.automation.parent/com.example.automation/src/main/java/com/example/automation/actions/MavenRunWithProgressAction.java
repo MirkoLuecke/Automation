@@ -3,6 +3,7 @@ package com.example.automation.actions;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -10,11 +11,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import com.example.automation.api.IAction;
 import com.example.automation.api.IActionContext;
 
 public class MavenRunWithProgressAction implements IAction {
+
+    private static final Pattern ANSI_ESCAPE = Pattern.compile("\\[[0-9;]*[mK]");
 
     @Override public String getId()          { return "maven-run-with-progress"; }
     @Override public String getName()        { return "Maven Run with Progress"; }
@@ -54,15 +58,8 @@ public class MavenRunWithProgressAction implements IAction {
         boolean[] buildFailed = {false};
 
         Thread stdoutThread = new Thread(() -> {
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    context.getStdout().println(line);
-                    if (line.contains("BUILD FAILURE")) buildFailed[0] = true;
-                    OptionalInt progress = parser.parse(line);
-                    if (progress.isPresent()) context.setProgress(progress.getAsInt());
-                }
+            try {
+                processOutputStream(process.getInputStream(), context, parser, buildFailed);
             } catch (IOException ignored) {}
         });
 
@@ -91,5 +88,21 @@ public class MavenRunWithProgressAction implements IAction {
         int exit = process.exitValue();
         if (exit != 0) throw new Exception("mvn exited with code " + exit);
         context.setProgress(100);
+    }
+
+    public void processOutputStream(InputStream in, IActionContext context,
+                                    MavenProgressParser parser, boolean[] buildFailed)
+            throws IOException {
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(in, StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String clean = ANSI_ESCAPE.matcher(line).replaceAll("");
+                context.getStdout().println(clean);
+                if (clean.contains("BUILD FAILURE")) buildFailed[0] = true;
+                OptionalInt progress = parser.parse(clean);
+                if (progress.isPresent()) context.setProgress(progress.getAsInt());
+            }
+        }
     }
 }
