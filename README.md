@@ -186,6 +186,15 @@ Refreshes a single project in the Eclipse workspace (same as pressing F5 on the 
 
 Refreshes all projects in the Eclipse workspace. No configuration fields.
 
+### Write File
+
+Writes text content to a file. Creates parent directories if they do not already exist. Overwrites any existing file at the given path.
+
+| Field | Required | Description |
+|---|---|---|
+| `filePath` | Yes | Path to the file to write. Eclipse variables are supported. |
+| `content` | No | Text content to write. Eclipse variables are supported. Multi-line content is supported via the built-in multi-line editor. |
+
 ---
 
 ## Eclipse Variable Substitution
@@ -246,8 +255,7 @@ The plugin ships with sample workflows that are automatically copied to your wor
 
 | Workflow | Description |
 |---|---|
-| Refresh Workspace | Runs **Refresh All** — useful as the final step of any multi-step workflow to sync the workspace after file system changes. |
-| Echo Workspace Info | Runs a Shell Command that prints `${workspace_loc}` to the Automation console, demonstrating variable substitution. |
+| Setup Automation Plugin | Clones the Automation plugin repository next to the workspace, creates a project-local Maven settings file, imports the Maven project into Eclipse, runs `mvn clean install`, updates the Maven project configuration, and refreshes the workspace. |
 
 If automatic deployment fails (e.g., the storage directory is not writable at startup), open **Window > Preferences > Automation** and click **Deploy bundled workflows**.
 
