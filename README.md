@@ -137,13 +137,12 @@ Checks out a branch in an existing local repository.
 
 ### Maven Run with Progress
 
-Launches an existing Eclipse Maven launch configuration and monitors its output for build progress.
+Runs a Maven build from the command line and tracks progress from output. On Windows: `powershell.exe -NonInteractive -Command mvn <goals>`. On Linux/macOS: `sh -c mvn <goals>`.
 
 | Field | Required | Description |
 |---|---|---|
-| `configName` | Yes | Name of an Eclipse launch configuration (as shown in **Run > Run Configurations…**). |
-
-Requires M2E (Maven Integration for Eclipse) to be installed.
+| `goals` | Yes | Maven goals and arguments, e.g. `clean install` or `-s /path/settings.xml clean install`. Eclipse variables are supported. |
+| `workingDir` | No | Working directory. If blank, uses the **Default working directory** from the preference page. Eclipse variables are supported. |
 
 ### Maven Update Project
 
