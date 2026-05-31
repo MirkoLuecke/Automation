@@ -39,22 +39,9 @@ public class Activator extends AbstractUIPlugin {
 
     @Override
     protected void initializeImageRegistry(ImageRegistry registry) {
-        // Down arrow — Eclipse platform ships this but exposes no public constant
-        ImageDescriptor down = imageDescriptorFromPlugin(
-            "org.eclipse.ui", "icons/full/elcl16/down_nav.png");
-        if (down != null) registry.put(IMG_DOWN_NAV, down);
-
-        // Run-selected — uses the Debug UI "run object" icon (visually distinct from IMG_ACT_RUN)
-        ImageDescriptor runSel = imageDescriptorFromPlugin(
-            "org.eclipse.debug.ui", "icons/full/obj16/run_obj.png");
-        if (runSel != null) registry.put(IMG_RUN_SELECTED, runSel);
-
-        // Edit / pencil — try two common platform locations
-        ImageDescriptor edit = imageDescriptorFromPlugin(
-            "org.eclipse.ui", "icons/full/etool16/edit.png");
-        if (edit == null) edit = imageDescriptorFromPlugin(
-            "org.eclipse.ui.workbench", "icons/full/etool16/edit.png");
-        if (edit != null) registry.put(IMG_EDIT, edit);
+        registry.put(IMG_DOWN_NAV,     imageDescriptorFromPlugin(PLUGIN_ID, "icons/down_nav.png"));
+        registry.put(IMG_RUN_SELECTED, imageDescriptorFromPlugin(PLUGIN_ID, "icons/run_selected.png"));
+        registry.put(IMG_EDIT,         imageDescriptorFromPlugin(PLUGIN_ID, "icons/edit.png"));
     }
 
     private void tryInstallBundledWorkflows() {

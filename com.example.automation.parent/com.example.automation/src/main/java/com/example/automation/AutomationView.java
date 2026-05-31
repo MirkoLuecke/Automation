@@ -111,9 +111,8 @@ public class AutomationView extends ViewPart {
             shared.getImage(ISharedImages.IMG_TOOL_NEW_WIZARD),
             SelectionListener.widgetSelectedAdapter(e -> onNew()));
 
-        Image editImg = Activator.getDefault().getImageRegistry().get(Activator.IMG_EDIT);
-        if (editImg == null) editImg = shared.getImage(ISharedImages.IMG_TOOL_REDO);
-        editWorkflowItem = makeButton(bar, "Edit Workflow", editImg,
+        editWorkflowItem = makeButton(bar, "Edit Workflow",
+            Activator.getDefault().getImageRegistry().get(Activator.IMG_EDIT),
             SelectionListener.widgetSelectedAdapter(e -> onEditWorkflow()));
 
         openWorkflowItem = makeButton(bar, "Open Workflow",
@@ -131,10 +130,8 @@ public class AutomationView extends ViewPart {
         moveUpItem = makeButton(bar, "Move Step Up",
             shared.getImage(ISharedImages.IMG_TOOL_UP),
             SelectionListener.widgetSelectedAdapter(e -> onMoveUp()));
-
-        Image downImg = Activator.getDefault().getImageRegistry().get(Activator.IMG_DOWN_NAV);
-        if (downImg == null) downImg = shared.getImage(ISharedImages.IMG_TOOL_FORWARD);
-        moveDownItem = makeButton(bar, "Move Step Down", downImg,
+        moveDownItem = makeButton(bar, "Move Step Down",
+            Activator.getDefault().getImageRegistry().get(Activator.IMG_DOWN_NAV),
             SelectionListener.widgetSelectedAdapter(e -> onMoveDown()));
 
         new ToolItem(bar, SWT.SEPARATOR);
@@ -142,10 +139,8 @@ public class AutomationView extends ViewPart {
         runItem = makeButton(bar, "Run Workflow",
             DebugUITools.getImage(IDebugUIConstants.IMG_ACT_RUN),
             SelectionListener.widgetSelectedAdapter(e -> onRun()));
-
-        Image runSelImg = Activator.getDefault().getImageRegistry().get(Activator.IMG_RUN_SELECTED);
-        if (runSelImg == null) runSelImg = DebugUITools.getImage(IDebugUIConstants.IMG_ACT_RUN);
-        runSelectedItem = makeButton(bar, "Run Selected Steps", runSelImg,
+        runSelectedItem = makeButton(bar, "Run Selected Steps",
+            Activator.getDefault().getImageRegistry().get(Activator.IMG_RUN_SELECTED),
             SelectionListener.widgetSelectedAdapter(e -> onRunSelected()));
 
         stopItem = makeButton(bar, "Stop",
