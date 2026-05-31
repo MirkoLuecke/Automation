@@ -165,7 +165,7 @@ public class AutomationView extends ViewPart {
 
         TableViewerColumn statusCol = new TableViewerColumn(viewer, SWT.CENTER);
         statusCol.getColumn().setText("Status");
-        statusCol.getColumn().setWidth(40);
+        statusCol.getColumn().setWidth(60);
         statusCol.setLabelProvider(new StepLabelProvider.Status());
 
         nameCol = new TableViewerColumn(viewer, SWT.NONE);

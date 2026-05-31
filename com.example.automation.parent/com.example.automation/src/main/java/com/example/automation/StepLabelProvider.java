@@ -61,10 +61,19 @@ public class StepLabelProvider {
             GC gc = event.gc;
             Color prev = gc.getBackground();
             gc.setBackground(colorFor(step.getStatus()));
-            int x = event.x + (event.width  - SQUARE) / 2;
-            int y = event.y + (event.height - SQUARE) / 2;
-            gc.fillRectangle(x, y, SQUARE, SQUARE);
-            gc.setBackground(prev);
+            if (step.getStatus() == StepStatus.YELLOW && step.getProgress() > 0) {
+                int x = event.x + 4;
+                int y = event.y + (event.height - SQUARE) / 2;
+                gc.fillRectangle(x, y, SQUARE, SQUARE);
+                gc.setBackground(prev);
+                String text = step.getProgress() + "%";
+                gc.drawText(text, x + SQUARE + 4, y - 1, true);
+            } else {
+                int x = event.x + (event.width  - SQUARE) / 2;
+                int y = event.y + (event.height - SQUARE) / 2;
+                gc.fillRectangle(x, y, SQUARE, SQUARE);
+                gc.setBackground(prev);
+            }
         }
 
         private Color colorFor(StepStatus status) {
