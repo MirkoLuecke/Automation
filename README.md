@@ -56,6 +56,7 @@ Open via **Project > Automation**. The view has three areas:
 | Button | Tooltip | Action |
 |---|---|---|
 | New Workflow | New Workflow | Opens a dialog to create a new workflow with a name and description. |
+| Edit Workflow | Edit Workflow | Edit the name and description of the currently loaded workflow. |
 | Open Workflow | Open Workflow | Opens a picker dialog to select an existing workflow. |
 | Add Step | Add Step | Opens a dialog showing all available action types; adds the selected action as a new step. |
 | Delete Step | Delete Step | Removes the selected step(s). |

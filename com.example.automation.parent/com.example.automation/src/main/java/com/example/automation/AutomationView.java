@@ -248,6 +248,7 @@ public class AutomationView extends ViewPart {
                     "Failed to save workflow: " + e.getMessage());
                 return;
             }
+            viewer.refresh();
             updateHeader();
             updateButtonStates();
         }
