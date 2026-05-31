@@ -35,4 +35,20 @@ public class ShellCommandActionTest {
         String desc = new ShellCommandAction().getDescription().toLowerCase();
         assertTrue(desc.contains("powershell"));
     }
+
+    @Test
+    public void buildCommand_onCurrentOs_firstElementIsShellExecutable() {
+        List<String> cmd = ShellCommandAction.buildCommand("echo hi");
+        boolean isWindows = System.getProperty("os.name", "").toLowerCase().contains("win");
+        if (isWindows) {
+            assertEquals("powershell.exe", cmd.get(0));
+            assertEquals("-NonInteractive", cmd.get(1));
+            assertEquals("-Command", cmd.get(2));
+            assertEquals("echo hi", cmd.get(3));
+        } else {
+            assertEquals("sh", cmd.get(0));
+            assertEquals("-c", cmd.get(1));
+            assertEquals("echo hi", cmd.get(2));
+        }
+    }
 }

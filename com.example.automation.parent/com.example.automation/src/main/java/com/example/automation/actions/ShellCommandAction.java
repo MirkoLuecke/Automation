@@ -29,6 +29,16 @@ public class ShellCommandAction implements IAction {
         return errors;
     }
 
+    /**
+     * Builds the command list for the current operating system.
+     * Returns powershell.exe on Windows, sh on other systems.
+     */
+    public static List<String> buildCommand(String command) {
+        return System.getProperty("os.name", "").toLowerCase().contains("win")
+            ? List.of("powershell.exe", "-NonInteractive", "-Command", command)
+            : List.of("sh", "-c", command);
+    }
+
     @Override
     public void execute(Map<String, String> config, IActionContext context) throws Exception {
         String command    = config.get("command");
@@ -36,9 +46,7 @@ public class ShellCommandAction implements IAction {
             throw new IllegalArgumentException("command must not be blank");
         String workingDir = config.getOrDefault("workingDir", "");
 
-        List<String> cmd = System.getProperty("os.name").toLowerCase().contains("win")
-            ? List.of("powershell.exe", "-NonInteractive", "-Command", command)
-            : List.of("sh", "-c", command);
+        List<String> cmd = buildCommand(command);
 
         File dir = workingDir.isBlank()
             ? new File(context.getWorkingDirectory())
