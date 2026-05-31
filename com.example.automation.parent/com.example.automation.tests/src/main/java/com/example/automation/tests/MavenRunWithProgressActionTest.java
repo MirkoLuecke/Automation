@@ -12,15 +12,22 @@ import com.example.automation.actions.MavenRunWithProgressAction;
 public class MavenRunWithProgressActionTest {
 
     @Test
-    public void validate_rejectsBlankConfigName() {
-        List<String> errors = new MavenRunWithProgressAction().validate(Map.of("configName", ""));
+    public void validate_rejectsBlankGoals() {
+        List<String> errors = new MavenRunWithProgressAction().validate(Map.of("goals", ""));
         assertFalse(errors.isEmpty());
     }
 
     @Test
-    public void validate_acceptsNonBlankConfigName() {
+    public void validate_acceptsNonBlankGoals() {
         List<String> errors = new MavenRunWithProgressAction().validate(
-            Map.of("configName", "My Maven Build"));
+            Map.of("goals", "clean install"));
         assertTrue(errors.isEmpty());
+    }
+
+    @Test
+    public void defaultConfig_containsGoalsAndWorkingDirKeys() {
+        Map<String, String> cfg = new MavenRunWithProgressAction().getDefaultConfig();
+        assertTrue(cfg.containsKey("goals"));
+        assertTrue(cfg.containsKey("workingDir"));
     }
 }
