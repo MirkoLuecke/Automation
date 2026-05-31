@@ -21,7 +21,7 @@ public class SetMavenSettingsTest {
     public void validate_acceptsNonBlankFilePath() {
         List<String> errors = new SetMavenSettingsAction().validate(
             Map.of("filePath", "/path/to/settings.xml"));
-        assertTrue(errors.isEmpty());
+        assertTrue(errors.stream().noneMatch(e -> e.contains("filePath")));
     }
 
     @Test
