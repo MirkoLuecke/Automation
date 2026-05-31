@@ -6,13 +6,13 @@ import java.util.List;
 import java.util.Map;
 
 import org.eclipse.core.resources.IProject;
-import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.m2e.core.MavenPlugin;
-import org.eclipse.m2e.core.project.IProjectConfigurationManager;
+import org.eclipse.m2e.core.project.IMavenProjectImportResult;
 import org.eclipse.m2e.core.project.LocalProjectScanner;
 import org.eclipse.m2e.core.project.MavenProjectInfo;
+import org.eclipse.m2e.core.project.MavenUpdateRequest;
 import org.eclipse.m2e.core.project.ProjectImportConfiguration;
 import org.osgi.framework.Bundle;
 
@@ -59,19 +59,21 @@ public class ImportMavenProjectAction implements IAction {
 
         List<MavenProjectInfo> projects = scanner.getProjects();
         context.getStdout().println("Discovered " + projects.size() + " Maven project(s) to import.");
-        MavenPlugin.getProjectConfigurationManager().importProjects(
+        List<IMavenProjectImportResult> imported = MavenPlugin.getProjectConfigurationManager().importProjects(
             projects,
             new ProjectImportConfiguration(),
             new NullProgressMonitor());
 
-        IProjectConfigurationManager configManager = MavenPlugin.getProjectConfigurationManager();
-        for (IProject project : ResourcesPlugin.getWorkspace().getRoot().getProjects()) {
-            try {
-                if (project.isOpen() && project.hasNature("org.eclipse.m2e.core.maven2Nature")) {
-                    configManager.updateProjectConfiguration(project, new NullProgressMonitor());
-                    context.getStdout().println("Configured: " + project.getName());
-                }
-            } catch (Exception ignored) {}
+        List<IProject> toUpdate = new ArrayList<>();
+        for (IMavenProjectImportResult result : imported) {
+            IProject project = result.getProject();
+            if (project != null && project.isAccessible())
+                toUpdate.add(project);
+        }
+        if (!toUpdate.isEmpty()) {
+            MavenPlugin.getProjectConfigurationManager().updateProjectConfiguration(
+                new MavenUpdateRequest(toUpdate, false, false), new NullProgressMonitor());
+            context.getStdout().println("Updated configuration for " + toUpdate.size() + " project(s).");
         }
         context.setProgress(100);
     }
