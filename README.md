@@ -195,6 +195,16 @@ Writes text content to a file. Creates parent directories if they do not already
 | `filePath` | Yes | Path to the file to write. Eclipse variables are supported. |
 | `content` | No | Text content to write. Eclipse variables are supported. Multi-line content is supported via the built-in multi-line editor. |
 
+### Set Maven Settings
+
+Sets the Maven user settings file in Eclipse's M2E configuration. Equivalent to changing the **User Settings** field in **Window > Preferences > Maven**.
+
+| Field | Required | Description |
+|---|---|---|
+| `filePath` | Yes | Path to the settings.xml file. Eclipse variables are supported. |
+
+Requires M2E (Maven Integration for Eclipse) to be installed.
+
 ---
 
 ## Eclipse Variable Substitution
