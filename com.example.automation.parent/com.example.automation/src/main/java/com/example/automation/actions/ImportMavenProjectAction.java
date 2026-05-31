@@ -2,13 +2,13 @@ package com.example.automation.actions;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.m2e.core.MavenPlugin;
+import org.eclipse.m2e.core.project.LocalProjectScanner;
 import org.eclipse.m2e.core.project.MavenProjectInfo;
 import org.eclipse.m2e.core.project.ProjectImportConfiguration;
 import org.osgi.framework.Bundle;
@@ -20,7 +20,7 @@ public class ImportMavenProjectAction implements IAction {
 
     @Override public String getId()          { return "import-maven-project"; }
     @Override public String getName()        { return "Import Maven Project"; }
-    @Override public String getDescription() { return "Imports an existing Maven project into the Eclipse workspace."; }
+    @Override public String getDescription() { return "Imports an existing Maven project and all its modules into the Eclipse workspace."; }
 
     @Override
     public Map<String, String> getDefaultConfig() { return Map.of("pomPath", ""); }
@@ -48,9 +48,16 @@ public class ImportMavenProjectAction implements IAction {
             throw new Exception("pom.xml not found at: " + pomFile.getAbsolutePath());
 
         context.setProgress(0);
-        MavenProjectInfo info = new MavenProjectInfo(pomFile.getName(), pomFile, null, null);
+        LocalProjectScanner scanner = new LocalProjectScanner(
+            List.of(pomFile.getParentFile().getAbsolutePath()),
+            false,
+            MavenPlugin.getMavenModelManager());
+        scanner.run(new NullProgressMonitor());
+
+        List<MavenProjectInfo> projects = scanner.getProjects();
+        context.getStdout().println("Discovered " + projects.size() + " Maven project(s) to import.");
         MavenPlugin.getProjectConfigurationManager().importProjects(
-            Collections.singletonList(info),
+            projects,
             new ProjectImportConfiguration(),
             new NullProgressMonitor());
         context.setProgress(100);
