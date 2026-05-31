@@ -218,6 +218,9 @@ public class AutomationView extends ViewPart {
     private void onOpenWorkflow() {
         String storagePath = "(unknown)";
         try { storagePath = resolvedStorageDir().getAbsolutePath(); } catch (Exception e) {}
+        try { workflows = repository().list(); } catch (Exception e) {
+            Platform.getLog(getClass()).error("Failed to reload workflows", e);
+        }
         WorkflowPickerDialog dialog = new WorkflowPickerDialog(getSite().getShell(), workflows, storagePath);
         if (dialog.open() == Window.OK) {
             currentWorkflow = dialog.getResult();

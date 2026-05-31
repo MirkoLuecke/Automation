@@ -89,7 +89,7 @@ public class StepPropertySource implements IPropertySource {
     }
 
     private PropertyDescriptor createConfigDescriptor(String key) {
-        if ("shell-command".equals(step.getActionId()) && "command".equals(key)) {
+        if (isMultiLineField(step.getActionId(), key)) {
             return new PropertyDescriptor(key, key) {
                 @Override
                 public org.eclipse.jface.viewers.CellEditor createPropertyEditor(Composite parent) {
@@ -98,6 +98,11 @@ public class StepPropertySource implements IPropertySource {
             };
         }
         return new TextPropertyDescriptor(key, key);
+    }
+
+    private static boolean isMultiLineField(String actionId, String key) {
+        return ("shell-command".equals(actionId) && "command".equals(key))
+            || ("write-file".equals(actionId) && "content".equals(key));
     }
 
     private List<String> configKeys() {
