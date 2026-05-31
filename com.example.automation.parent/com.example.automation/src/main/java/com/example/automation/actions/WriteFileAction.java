@@ -7,9 +7,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.eclipse.core.variables.IStringVariableManager;
-import org.eclipse.core.variables.VariablesPlugin;
-
 import com.example.automation.api.IAction;
 import com.example.automation.api.IActionContext;
 
@@ -34,15 +31,15 @@ public class WriteFileAction implements IAction {
 
     @Override
     public void execute(Map<String, String> config, IActionContext context) throws Exception {
-        IStringVariableManager svm = VariablesPlugin.getDefault().getStringVariableManager();
-        String filePath = svm.performStringSubstitution(config.getOrDefault("filePath", ""));
-        String content  = svm.performStringSubstitution(config.getOrDefault("content", ""));
+        String filePath = config.getOrDefault("filePath", "");
+        String content  = config.getOrDefault("content", "");
+        context.setProgress(0);
         writeFile(filePath, content);
         context.getStdout().println("Written: " + Path.of(filePath).toAbsolutePath());
         context.setProgress(100);
     }
 
-    /** Package-private intent; public only because OSGi cross-bundle classloading requires it. Not part of the public API. */
+    /** Public because accessed from the tests bundle; not part of the public API (see Export-Package x-internal in MANIFEST.MF). */
     public static void writeFile(String filePath, String content) throws Exception {
         Path path = Path.of(filePath);
         if (path.getParent() != null) Files.createDirectories(path.getParent());
