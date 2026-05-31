@@ -12,7 +12,9 @@ public class ShellCommandAction implements IAction {
 
     @Override public String getId()          { return "shell-command"; }
     @Override public String getName()        { return "Shell Command"; }
-    @Override public String getDescription() { return "Executes a shell command."; }
+    @Override public String getDescription() {
+        return "Executes a shell command. Uses powershell.exe on Windows and sh on Linux/macOS.";
+    }
 
     @Override
     public Map<String, String> getDefaultConfig() {
@@ -35,7 +37,7 @@ public class ShellCommandAction implements IAction {
         String workingDir = config.getOrDefault("workingDir", "");
 
         List<String> cmd = System.getProperty("os.name").toLowerCase().contains("win")
-            ? List.of("cmd.exe", "/c", command)
+            ? List.of("powershell.exe", "-NonInteractive", "-Command", command)
             : List.of("sh", "-c", command);
 
         File dir = workingDir.isBlank()

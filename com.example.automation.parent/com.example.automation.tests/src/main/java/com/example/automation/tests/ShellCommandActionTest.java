@@ -29,4 +29,10 @@ public class ShellCommandActionTest {
         assertTrue(cfg.containsKey("command"));
         assertTrue(cfg.containsKey("workingDir"));
     }
+
+    @Test
+    public void description_mentionsPowershell() {
+        String desc = new ShellCommandAction().getDescription().toLowerCase();
+        assertTrue(desc.contains("powershell"));
+    }
 }
