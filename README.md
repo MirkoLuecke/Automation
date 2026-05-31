@@ -8,12 +8,28 @@ An Eclipse plugin that lets you define, manage, and run multi-step automation wo
 
 ## Installation
 
-1. Open Eclipse and go to **Help > Install New Software…**
-2. Click **Add…** and enter the URL of the update site.
-3. Select **Automation** from the feature list and click **Next > Finish**.
+### 1. Build the update site
+
+From a terminal in the repository root:
+
+```
+cd com.example.automation.parent
+mvn clean verify
+```
+
+This produces the p2 update site at:
+`com.example.automation.parent/com.example.automation.site/target/repository`
+
+### 2. Install in Eclipse
+
+1. Open Eclipse and go to **Help → Install New Software…**
+2. Click **Add…**, then **Local…**, and browse to the `repository` folder above.
+3. Select **Automation** from the feature list and click **Next → Finish**.
 4. Restart Eclipse when prompted.
 
-After installation, open the view via **Project > Automation** or **Window > Show View > Other… > Automation**.
+> **After a rebuild:** Eclipse caches p2 repository metadata. If you rebuild the plugin and reinstall, go to **Manage…** in the Install Software dialog, remove the existing entry, and re-add it. Otherwise Eclipse may report version errors or "no categorized items."
+
+After installation, open the view via **Project → Automation** or **Window → Show View → Other… → Automation**.
 
 ---
 
