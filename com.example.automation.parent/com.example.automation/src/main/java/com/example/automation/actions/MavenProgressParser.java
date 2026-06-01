@@ -8,9 +8,8 @@ public class MavenProgressParser {
 
     private static final Pattern NM = Pattern.compile("\\[(\\d+)/(\\d+)\\]");
 
-    private int lastN = 0;
-    private int lastM = 0;
-    private boolean seenNM = false;
+    private int currentN = 0;
+    private int totalM = 0;
 
     public OptionalInt parse(String line) {
         if (line == null) return OptionalInt.empty();
@@ -18,31 +17,37 @@ public class MavenProgressParser {
         Matcher m = NM.matcher(line);
         if (m.find()) {
             int n = Integer.parseInt(m.group(1));
-            int m2 = Integer.parseInt(m.group(2));
-            if (m2 > 0) {
-                lastN = n;
-                lastM = m2;
-                seenNM = true;
-                return OptionalInt.of((lastN - 1) * 100 / lastM);
+            int total = Integer.parseInt(m.group(2));
+            if (total > 0) {
+                currentN = n;
+                totalM = total;
+                return OptionalInt.of((n - 1) * 100 / total);
             }
         }
 
-        if (line.contains("BUILD SUCCESS")) {
-            if (seenNM && lastM > 0) return OptionalInt.of(lastN * 100 / lastM);
-            return OptionalInt.of(100);
-        }
+        if (line.contains("BUILD SUCCESS")) return OptionalInt.of(100);
         if (line.contains("BUILD FAILURE")) return OptionalInt.empty();
 
         if (!line.contains("[INFO] ---")) return OptionalInt.empty();
-        if (line.contains(":deploy"))       return OptionalInt.of(95);
-        if (line.contains(":install"))      return OptionalInt.of(90);
-        if (line.contains(":jar") || line.contains(":war") || line.contains(":ear"))
-                                            return OptionalInt.of(75);
-        if (line.contains(":testCompile"))  return OptionalInt.of(45);
-        if (line.contains(":test"))         return OptionalInt.of(60);
-        if (line.contains(":compile"))      return OptionalInt.of(30);
-        if (line.contains(":resources"))    return OptionalInt.of(15);
 
-        return OptionalInt.empty();
+        int phase;
+        if      (line.contains(":deploy"))      phase = 95;
+        else if (line.contains(":install"))     phase = 90;
+        else if (line.contains(":jar") || line.contains(":war") || line.contains(":ear"))
+                                                phase = 75;
+        else if (line.contains(":testCompile")) phase = 45;
+        else if (line.contains(":test"))        phase = 60;
+        else if (line.contains(":compile"))     phase = 30;
+        else if (line.contains(":resources"))   phase = 15;
+        else return OptionalInt.empty();
+
+        // When module count is known, blend module index with phase so progress
+        // advances across all modules instead of resetting each time.
+        if (totalM > 0) {
+            int base = (currentN - 1) * 100 / totalM;
+            int slot = 100 / totalM;
+            return OptionalInt.of(base + phase * slot / 100);
+        }
+        return OptionalInt.of(phase);
     }
 }

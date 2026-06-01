@@ -16,11 +16,32 @@ public class MavenProgressParserTest {
     }
 
     @Test
-    public void parse_buildSuccessAfterNM_returnsNFraction() {
+    public void parse_buildSuccessAfterNM_returns100() {
         MavenProgressParser p = new MavenProgressParser();
         p.parse("[INFO] Building my-module 1.0.0 [3/9]");
-        // 3*100/9 = 33
-        assertEquals(33, p.parse("[INFO] BUILD SUCCESS").getAsInt());
+        assertEquals(100, p.parse("[INFO] BUILD SUCCESS").getAsInt());
+    }
+
+    @Test
+    public void parse_phaseGoalWithNmContext_returnsCombined() {
+        MavenProgressParser p = new MavenProgressParser();
+        // module 3 of 5: base = (3-1)*100/5 = 40, slot = 100/5 = 20
+        // compile phase = 30 -> 40 + 30*20/100 = 46
+        p.parse("[INFO] Building my-module 1.0.0 [3/5]");
+        assertEquals(46, p.parse(
+            "[INFO] --- maven-compiler-plugin:3.8.0:compile (default-compile) @ proj ---").getAsInt());
+    }
+
+    @Test
+    public void parse_phaseGoalWithNmContext_advancesAcrossModules() {
+        MavenProgressParser p = new MavenProgressParser();
+        // module 1 install = 0 + 90*20/100 = 18; module 2 base = 20 > 18
+        p.parse("[INFO] Building mod 1.0 [1/5]");
+        p.parse("[INFO] --- maven-install-plugin:install @ mod ---");
+        p.parse("[INFO] Building mod2 1.0 [2/5]");
+        // base for module 2 = (2-1)*100/5 = 20, resources = 20 + 15*20/100 = 23
+        assertEquals(23, p.parse(
+            "[INFO] --- maven-resources-plugin:resources @ mod2 ---").getAsInt());
     }
 
     @Test
