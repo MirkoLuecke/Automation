@@ -71,6 +71,7 @@ public class ImportMavenProjectAction implements IAction {
                 queue.addAll(info.getProjects());
         }
         context.getStdout().println("Discovered " + allModules.size() + " Maven project(s) to import.");
+        deleteTargetDirs(pomFile.getParentFile(), context);
         MavenPlugin.getProjectConfigurationManager().importProjects(
             allModules,
             new ProjectImportConfiguration(),
@@ -84,6 +85,29 @@ public class ImportMavenProjectAction implements IAction {
             Thread.currentThread().interrupt();
         }
         context.setProgress(100);
+    }
+
+    private static void deleteTargetDirs(File dir, IActionContext context) {
+        File[] children = dir.listFiles();
+        if (children == null) return;
+        for (File child : children) {
+            if (!child.isDirectory()) continue;
+            if ("target".equals(child.getName())) {
+                deleteRecursively(child);
+                context.getStdout().println("Removed: " + child.getAbsolutePath());
+            } else {
+                deleteTargetDirs(child, context);
+            }
+        }
+    }
+
+    private static void deleteRecursively(File f) {
+        if (f.isDirectory()) {
+            File[] children = f.listFiles();
+            if (children != null)
+                for (File child : children) deleteRecursively(child);
+        }
+        f.delete();
     }
 
     private static final class ImportMonitor implements IProgressMonitor {
