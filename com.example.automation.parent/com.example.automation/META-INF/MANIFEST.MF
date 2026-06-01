@@ -15,8 +15,7 @@ Require-Bundle: org.eclipse.ui,
  org.eclipse.debug.core,
  org.eclipse.debug.ui,
  org.eclipse.m2e.core,
- org.eclipse.core.variables,
- org.eclipse.jdt.core
+ org.eclipse.core.variables
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Bundle-ActivationPolicy: lazy
 Bundle-ClassPath: .,

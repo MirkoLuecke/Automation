@@ -9,18 +9,11 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 
-import org.eclipse.core.resources.ICommand;
 import org.eclipse.core.resources.IProject;
-import org.eclipse.core.resources.IProjectDescription;
 import org.eclipse.core.resources.ResourcesPlugin;
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.NullProgressMonitor;
-import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Platform;
-import org.eclipse.jdt.core.IClasspathEntry;
-import org.eclipse.jdt.core.IJavaProject;
-import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.m2e.core.MavenPlugin;
 import org.eclipse.m2e.core.project.LocalProjectScanner;
 import org.eclipse.m2e.core.project.MavenProjectInfo;
@@ -102,80 +95,11 @@ public class ImportMavenProjectAction implements IAction {
         }
 
         if (!toUpdate.isEmpty()) {
-            try {
-                MavenPlugin.getProjectConfigurationManager().updateProjectConfiguration(
-                    new MavenUpdateRequest(toUpdate, false, false), new NullProgressMonitor());
-                context.getStdout().println("Updated configuration for " + toUpdate.size() + " project(s).");
-            } catch (Exception e) {
-                context.getStdout().println("Warning: M2E configuration update skipped: " + e);
-            }
-
-            // Fallback: add Java nature directly for projects whose M2E lifecycle
-            // mapping did not apply it (e.g., eclipse-plugin packaging without the
-            // Tycho M2E connector, or when m2e-jdt is not installed)
-            for (IProject project : toUpdate) {
-                try {
-                    if (project.isOpen() && !project.hasNature("org.eclipse.jdt.core.javanature")) {
-                        addJavaNature(project);
-                        context.getStdout().println("Added Java nature to: " + project.getName());
-                    }
-                } catch (CoreException e) {
-                    context.getStdout().println("Warning: could not add Java nature to "
-                        + project.getName() + ": " + e.getMessage());
-                }
-            }
+            context.getStdout().println("Running M2E update for " + toUpdate.size() + " project(s)...");
+            MavenPlugin.getProjectConfigurationManager().updateProjectConfiguration(
+                new MavenUpdateRequest(toUpdate, false, false), new NullProgressMonitor());
+            context.getStdout().println("Done.");
         }
         context.setProgress(100);
-    }
-
-    private static void addJavaNature(IProject project) throws CoreException {
-        IProjectDescription desc = project.getDescription();
-
-        // Add Java nature (prepend so Eclipse UI shows it as a Java project)
-        String[] natures = desc.getNatureIds();
-        boolean hasNature = false;
-        for (String n : natures)
-            if ("org.eclipse.jdt.core.javanature".equals(n)) { hasNature = true; break; }
-        if (!hasNature) {
-            String[] newNatures = new String[natures.length + 1];
-            newNatures[0] = "org.eclipse.jdt.core.javanature";
-            System.arraycopy(natures, 0, newNatures, 1, natures.length);
-            desc.setNatureIds(newNatures);
-        }
-
-        // Add Java builder if not already listed
-        ICommand[] cmds = desc.getBuildSpec();
-        boolean hasBuilder = false;
-        for (ICommand c : cmds)
-            if ("org.eclipse.jdt.core.javabuilder".equals(c.getBuilderName())) { hasBuilder = true; break; }
-        if (!hasBuilder) {
-            ICommand javaCmd = desc.newCommand();
-            javaCmd.setBuilderName("org.eclipse.jdt.core.javabuilder");
-            ICommand[] newCmds = new ICommand[cmds.length + 1];
-            newCmds[0] = javaCmd;
-            System.arraycopy(cmds, 0, newCmds, 1, cmds.length);
-            desc.setBuildSpec(newCmds);
-        }
-
-        project.setDescription(desc, new NullProgressMonitor());
-
-        // Configure standard Maven source directories as classpath source entries.
-        // Without this, Eclipse treats the project root as the source root and
-        // reports "declared package does not match expected package src.main.java.com..."
-        IJavaProject javaProject = JavaCore.create(project);
-        IPath projectPath = project.getFullPath();
-        List<IClasspathEntry> entries = new ArrayList<>();
-        for (String srcDir : new String[]{
-                "src/main/java", "src/main/resources",
-                "src/test/java", "src/test/resources"}) {
-            if (project.getFolder(srcDir).exists())
-                entries.add(JavaCore.newSourceEntry(projectPath.append(srcDir)));
-        }
-        entries.add(JavaCore.newContainerEntry(
-            new Path("org.eclipse.jdt.launching.JRE_CONTAINER")));
-        javaProject.setRawClasspath(
-            entries.toArray(new IClasspathEntry[0]),
-            projectPath.append("target/classes"),
-            new NullProgressMonitor());
     }
 }
