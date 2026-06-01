@@ -3,21 +3,15 @@ package com.example.automation.actions;
 import java.io.File;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.Set;
 
-import org.eclipse.core.resources.IProject;
-import org.eclipse.core.resources.ResourcesPlugin;
-import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.m2e.core.MavenPlugin;
 import org.eclipse.m2e.core.project.LocalProjectScanner;
 import org.eclipse.m2e.core.project.MavenProjectInfo;
-import org.eclipse.m2e.core.project.MavenUpdateRequest;
 import org.eclipse.m2e.core.project.ProjectImportConfiguration;
 import org.osgi.framework.Bundle;
 
@@ -77,29 +71,6 @@ public class ImportMavenProjectAction implements IAction {
             allModules,
             new ProjectImportConfiguration(),
             new NullProgressMonitor());
-
-        // Find workspace projects by filesystem location — reliable even when
-        // importProjects() skips pre-existing projects (returning null IProject results)
-        Set<File> importedDirs = new HashSet<>();
-        for (MavenProjectInfo info : allModules)
-            importedDirs.add(info.getPomFile().getParentFile().getAbsoluteFile());
-
-        List<IProject> toUpdate = new ArrayList<>();
-        for (IProject project : ResourcesPlugin.getWorkspace().getRoot().getProjects()) {
-            try {
-                if (!project.isOpen()) continue;
-                IPath loc = project.getLocation();
-                if (loc != null && importedDirs.contains(loc.toFile().getAbsoluteFile()))
-                    toUpdate.add(project);
-            } catch (Exception ignored) {}
-        }
-
-        if (!toUpdate.isEmpty()) {
-            context.getStdout().println("Running M2E update for " + toUpdate.size() + " project(s)...");
-            MavenPlugin.getProjectConfigurationManager().updateProjectConfiguration(
-                new MavenUpdateRequest(toUpdate, false, false), new NullProgressMonitor());
-            context.getStdout().println("Done.");
-        }
         context.setProgress(100);
     }
 }
