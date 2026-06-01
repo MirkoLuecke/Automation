@@ -10,7 +10,10 @@ import java.util.Queue;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Platform;
+import org.eclipse.core.runtime.jobs.IJobManager;
+import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.m2e.core.MavenPlugin;
+import org.eclipse.m2e.core.project.IProjectConfigurationManager;
 import org.eclipse.m2e.core.project.LocalProjectScanner;
 import org.eclipse.m2e.core.project.MavenProjectInfo;
 import org.eclipse.m2e.core.project.ProjectImportConfiguration;
@@ -72,6 +75,14 @@ public class ImportMavenProjectAction implements IAction {
             allModules,
             new ProjectImportConfiguration(),
             new ImportMonitor(context, allModules.size()));
+        // Wait for M2E background project-configuration jobs (UpdateProjectJob)
+        // These are scheduled inside importProjects() and run after it returns.
+        IJobManager jm = Job.getJobManager();
+        try {
+            jm.join(MavenPlugin.getProjectConfigurationManager(), new BackgroundMonitor(context));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
         context.setProgress(100);
     }
 
@@ -86,12 +97,39 @@ public class ImportMavenProjectAction implements IAction {
         }
 
         @Override
-        public void beginTask(String name, int totalWork) { context.setProgress(0); }
+        public void beginTask(String name, int totalWork) { context.setProgress(5); }
 
         @Override
         public void worked(int work) {
             done += work;
-            context.setProgress(Math.min(99, done * 100 / total));
+            context.setProgress(Math.min(40, done * 40 / total));
+        }
+
+        @Override public void done()                      {}
+        @Override public boolean isCanceled()             { return false; }
+        @Override public void setCanceled(boolean value)  {}
+        @Override public void setTaskName(String name)    {}
+        @Override public void subTask(String name)        {}
+        @Override public void internalWorked(double work) {}
+    }
+
+    private static final class BackgroundMonitor implements IProgressMonitor {
+        private final IActionContext context;
+        private int total = 1;
+        private int done  = 0;
+
+        BackgroundMonitor(IActionContext context) { this.context = context; }
+
+        @Override
+        public void beginTask(String name, int totalWork) {
+            this.total = totalWork > 0 ? totalWork : 1;
+            context.setProgress(40);
+        }
+
+        @Override
+        public void worked(int work) {
+            done += work;
+            context.setProgress(Math.min(99, 40 + done * 59 / total));
         }
 
         @Override public void done()                      {}
