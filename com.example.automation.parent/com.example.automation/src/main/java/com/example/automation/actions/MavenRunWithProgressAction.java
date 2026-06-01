@@ -96,12 +96,16 @@ public class MavenRunWithProgressAction implements IAction {
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(in, StandardCharsets.UTF_8))) {
             String line;
+            int maxProgress = 0;
             while ((line = reader.readLine()) != null) {
                 String clean = ANSI_ESCAPE.matcher(line).replaceAll("");
                 context.getStdout().println(clean);
                 if (clean.contains("BUILD FAILURE")) buildFailed[0] = true;
                 OptionalInt progress = parser.parse(clean);
-                if (progress.isPresent()) context.setProgress(progress.getAsInt());
+                if (progress.isPresent() && progress.getAsInt() > maxProgress) {
+                    maxProgress = progress.getAsInt();
+                    context.setProgress(maxProgress);
+                }
             }
         }
     }

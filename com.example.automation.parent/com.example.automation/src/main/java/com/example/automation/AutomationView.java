@@ -363,7 +363,7 @@ public class AutomationView extends ViewPart {
             .sorted(Comparator.comparingInt(allSteps::indexOf))
             .collect(Collectors.toList());
         if (ordered.isEmpty()) return;
-        ordered.forEach(s -> { s.setStatus(StepStatus.WHITE); s.setProgress(0); });
+        allSteps.forEach(s -> { s.setStatus(StepStatus.WHITE); s.setProgress(0); });
         viewer.refresh();
         startRunner(ordered);
     }
