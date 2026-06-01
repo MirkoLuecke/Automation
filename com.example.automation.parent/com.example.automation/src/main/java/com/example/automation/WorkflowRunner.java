@@ -80,7 +80,8 @@ public class WorkflowRunner {
                 if (!cancelled) setStatus(step, StepStatus.GREEN);
             } catch (Exception e) {
                 Platform.getLog(WorkflowRunner.class).error("Step failed", e);
-                stderr.println("Step failed: " + e.getMessage());
+                stderr.println("Step failed: " + e);
+                e.printStackTrace(stderr);
                 setStatus(step, StepStatus.RED);
                 break;
             }

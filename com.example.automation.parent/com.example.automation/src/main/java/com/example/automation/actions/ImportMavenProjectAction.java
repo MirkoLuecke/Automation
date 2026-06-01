@@ -98,9 +98,13 @@ public class ImportMavenProjectAction implements IAction {
         }
 
         if (!toUpdate.isEmpty()) {
-            MavenPlugin.getProjectConfigurationManager().updateProjectConfiguration(
-                new MavenUpdateRequest(toUpdate, false, false), new NullProgressMonitor());
-            context.getStdout().println("Updated configuration for " + toUpdate.size() + " project(s).");
+            try {
+                MavenPlugin.getProjectConfigurationManager().updateProjectConfiguration(
+                    new MavenUpdateRequest(toUpdate, false, false), new NullProgressMonitor());
+                context.getStdout().println("Updated configuration for " + toUpdate.size() + " project(s).");
+            } catch (Exception e) {
+                context.getStdout().println("Warning: M2E configuration update skipped: " + e);
+            }
 
             // Fallback: add Java nature directly for projects whose M2E lifecycle
             // mapping did not apply it (e.g., eclipse-plugin packaging without the
