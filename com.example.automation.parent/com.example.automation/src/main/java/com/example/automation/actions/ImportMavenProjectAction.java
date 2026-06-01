@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 
+import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.m2e.core.MavenPlugin;
@@ -70,7 +71,34 @@ public class ImportMavenProjectAction implements IAction {
         MavenPlugin.getProjectConfigurationManager().importProjects(
             allModules,
             new ProjectImportConfiguration(),
-            new NullProgressMonitor());
+            new ImportMonitor(context, allModules.size()));
         context.setProgress(100);
+    }
+
+    private static final class ImportMonitor implements IProgressMonitor {
+        private final IActionContext context;
+        private final int total;
+        private int done = 0;
+
+        ImportMonitor(IActionContext context, int total) {
+            this.context = context;
+            this.total = total > 0 ? total : 1;
+        }
+
+        @Override
+        public void beginTask(String name, int totalWork) { context.setProgress(0); }
+
+        @Override
+        public void worked(int work) {
+            done += work;
+            context.setProgress(Math.min(99, done * 100 / total));
+        }
+
+        @Override public void done()                      {}
+        @Override public boolean isCanceled()             { return false; }
+        @Override public void setCanceled(boolean value)  {}
+        @Override public void setTaskName(String name)    {}
+        @Override public void subTask(String name)        {}
+        @Override public void internalWorked(double work) {}
     }
 }
