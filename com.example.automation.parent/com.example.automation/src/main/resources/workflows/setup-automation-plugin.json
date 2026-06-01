@@ -37,6 +37,12 @@
       }
     },
     {
+      "actionId": "set-active-target-platform",
+      "config": {
+        "targetFile": "${project_loc:com.example.automation.parent}/platform.target"
+      }
+    },
+    {
       "actionId": "maven-run-with-progress",
       "config": {
         "goals": "-s ${workspace_loc}/../settings.xml clean install",
