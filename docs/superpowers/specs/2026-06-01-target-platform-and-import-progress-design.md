@@ -65,12 +65,12 @@ Insert after the `import-maven-project` step and before `maven-run-with-progress
 {
   "actionId": "set-active-target-platform",
   "config": {
-    "targetFile": "${workspace_loc}/../automation-plugin/com.example.automation.parent/platform.target"
+    "targetFile": "${project_loc:com.example.automation.parent}/platform.target"
   }
 }
 ```
 
-The `platform.target` file is committed in the repo and present on disk after `git-clone` completes.
+`${project_loc:com.example.automation.parent}` resolves to the filesystem location of the imported project, which is available after `import-maven-project` completes. The `platform.target` file is committed in the repo root of that project.
 
 ## MANIFEST.MF
 
