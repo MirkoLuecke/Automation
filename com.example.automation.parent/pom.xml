@@ -97,6 +97,9 @@
         <artifactId>target-platform-configuration</artifactId>
         <version>${tycho.version}</version>
         <configuration>
+          <target>
+            <file>${maven.multiModuleProjectDirectory}/platform.target</file>
+          </target>
           <pomDependencies>consider</pomDependencies>
           <environments>
             <environment>
