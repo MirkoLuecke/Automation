@@ -90,6 +90,8 @@ public class StepLabelProvider {
         @Override
         public String getText(Object element) {
             Step step = (Step) element;
+            if (step.getName() != null && !step.getName().isBlank())
+                return step.getName();
             IAction action = ActionRegistry.getInstance().getAction(step.getActionId());
             return action != null ? action.getName() : step.getActionId();
         }

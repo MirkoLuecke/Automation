@@ -6,6 +6,7 @@ import java.util.Map;
 public class Step {
 
     private String actionId;
+    private String name;
     private Map<String, String> config = new HashMap<>();
 
     private transient StepStatus status = StepStatus.WHITE;
@@ -19,6 +20,9 @@ public class Step {
 
     public String getActionId() { return actionId; }
     public void setActionId(String actionId) { this.actionId = actionId; }
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
 
     public Map<String, String> getConfig() { return config; }
     public void setConfig(Map<String, String> config) { this.config = config; }

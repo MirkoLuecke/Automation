@@ -5,6 +5,7 @@
   "steps": [
     {
       "actionId": "shell-command",
+      "name": "Print working directory",
       "config": {
         "command": "echo Working directory: ${workspace_loc}/..",
         "workingDir": "${workspace_loc}/.."
@@ -12,6 +13,7 @@
     },
     {
       "actionId": "write-file",
+      "name": "Create settings.xml",
       "config": {
         "filePath": "${workspace_loc}/../settings.xml",
         "content": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<settings xmlns=\"http://maven.apache.org/SETTINGS/1.0.0\"\n          xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n          xsi:schemaLocation=\"http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd\">\n  <localRepository>${workspace_loc}/../.m2/repository</localRepository>\n</settings>"
@@ -19,6 +21,7 @@
     },
     {
       "actionId": "set-maven-settings",
+      "name": "Enable settings.xml in maven settings",
       "config": {
         "filePath": "${workspace_loc}/../settings.xml"
       }
@@ -44,10 +47,15 @@
     },
     {
       "actionId": "maven-run-with-progress",
+      "name": "mvn clean install",
       "config": {
         "goals": "-s ${workspace_loc}/../settings.xml clean install",
         "workingDir": "${workspace_loc}/../automation-plugin/com.example.automation.parent"
       }
+    },
+    {
+      "actionId": "refresh-all",
+      "config": {}
     },
     {
       "actionId": "maven-update-project",
