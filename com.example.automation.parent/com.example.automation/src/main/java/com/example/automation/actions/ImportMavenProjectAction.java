@@ -1,10 +1,12 @@
 package com.example.automation.actions;
 
 import java.io.File;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 
 import org.eclipse.core.resources.ICommand;
@@ -63,17 +65,26 @@ public class ImportMavenProjectAction implements IAction {
             MavenPlugin.getMavenModelManager());
         scanner.run(new NullProgressMonitor());
 
-        List<MavenProjectInfo> projects = scanner.getProjects();
-        context.getStdout().println("Discovered " + projects.size() + " Maven project(s) to import.");
+        // Flatten the module tree: scanner.getProjects() returns only root projects;
+        // child modules are nested inside MavenProjectInfo.getProjects()
+        List<MavenProjectInfo> allModules = new ArrayList<>();
+        Queue<MavenProjectInfo> queue = new ArrayDeque<>(scanner.getProjects());
+        while (!queue.isEmpty()) {
+            MavenProjectInfo info = queue.poll();
+            allModules.add(info);
+            if (info.getProjects() != null)
+                queue.addAll(info.getProjects());
+        }
+        context.getStdout().println("Discovered " + allModules.size() + " Maven project(s) to import.");
         MavenPlugin.getProjectConfigurationManager().importProjects(
-            projects,
+            allModules,
             new ProjectImportConfiguration(),
             new NullProgressMonitor());
 
         // Find workspace projects by filesystem location — reliable even when
         // importProjects() skips pre-existing projects (returning null IProject results)
         Set<File> importedDirs = new HashSet<>();
-        for (MavenProjectInfo info : projects)
+        for (MavenProjectInfo info : allModules)
             importedDirs.add(info.getPomFile().getParentFile().getAbsoluteFile());
 
         List<IProject> toUpdate = new ArrayList<>();
