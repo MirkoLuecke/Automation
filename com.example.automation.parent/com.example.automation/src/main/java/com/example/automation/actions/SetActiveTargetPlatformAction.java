@@ -1,11 +1,20 @@
 package com.example.automation.actions;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Platform;
+import org.eclipse.pde.core.target.ITargetDefinition;
+import org.eclipse.pde.core.target.ITargetHandle;
+import org.eclipse.pde.core.target.ITargetPlatformService;
+import org.eclipse.pde.core.target.LoadTargetDefinitionJob;
 import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceReference;
 
 import com.example.automation.api.IAction;
 import com.example.automation.api.IActionContext;
@@ -34,6 +43,60 @@ public class SetActiveTargetPlatformAction implements IAction {
 
     @Override
     public void execute(Map<String, String> config, IActionContext context) throws Exception {
-        throw new UnsupportedOperationException("Not yet implemented");
+        String targetPath = config.get("targetFile");
+        if (targetPath == null || targetPath.isBlank())
+            throw new IllegalArgumentException("targetFile must not be blank");
+
+        File targetFile = new File(targetPath);
+        if (!targetFile.exists())
+            throw new Exception(".target file not found at: " + targetFile.getAbsolutePath());
+
+        Bundle pdeCore = Platform.getBundle("org.eclipse.pde.core");
+        BundleContext bc = pdeCore.getBundleContext();
+        ServiceReference<ITargetPlatformService> ref =
+            bc.getServiceReference(ITargetPlatformService.class);
+        ITargetPlatformService service = bc.getService(ref);
+
+        ITargetHandle handle = service.getTarget(targetFile.toURI());
+        ITargetDefinition definition = handle.getTargetDefinition();
+
+        context.getStdout().println("Resolving target platform: " + targetFile.getName());
+        IStatus status = definition.resolve(new TargetMonitor(context));
+        if (status.getSeverity() == IStatus.ERROR)
+            throw new Exception("Target platform resolution failed: " + status.getMessage());
+
+        context.getStdout().println("Activating target platform...");
+        LoadTargetDefinitionJob job = new LoadTargetDefinitionJob(definition);
+        job.schedule();
+        job.join();
+
+        context.setProgress(100);
+    }
+
+    private static final class TargetMonitor implements IProgressMonitor {
+        private final IActionContext context;
+        private int total = 1;
+        private int done  = 0;
+
+        TargetMonitor(IActionContext context) { this.context = context; }
+
+        @Override
+        public void beginTask(String name, int totalWork) {
+            this.total = totalWork > 0 ? totalWork : 1;
+            context.setProgress(0);
+        }
+
+        @Override
+        public void worked(int work) {
+            done += work;
+            context.setProgress(Math.min(90, done * 90 / total));
+        }
+
+        @Override public void done()                      {}
+        @Override public boolean isCanceled()             { return false; }
+        @Override public void setCanceled(boolean value)  {}
+        @Override public void setTaskName(String name)    {}
+        @Override public void subTask(String name)        {}
+        @Override public void internalWorked(double work) {}
     }
 }
