@@ -16,7 +16,11 @@ import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.NullProgressMonitor;
+import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Platform;
+import org.eclipse.jdt.core.IClasspathEntry;
+import org.eclipse.jdt.core.IJavaProject;
+import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.m2e.core.MavenPlugin;
 import org.eclipse.m2e.core.project.LocalProjectScanner;
 import org.eclipse.m2e.core.project.MavenProjectInfo;
@@ -129,27 +133,49 @@ public class ImportMavenProjectAction implements IAction {
 
         // Add Java nature (prepend so Eclipse UI shows it as a Java project)
         String[] natures = desc.getNatureIds();
+        boolean hasNature = false;
         for (String n : natures)
-            if ("org.eclipse.jdt.core.javanature".equals(n)) return; // added concurrently
-        String[] newNatures = new String[natures.length + 1];
-        newNatures[0] = "org.eclipse.jdt.core.javanature";
-        System.arraycopy(natures, 0, newNatures, 1, natures.length);
-        desc.setNatureIds(newNatures);
+            if ("org.eclipse.jdt.core.javanature".equals(n)) { hasNature = true; break; }
+        if (!hasNature) {
+            String[] newNatures = new String[natures.length + 1];
+            newNatures[0] = "org.eclipse.jdt.core.javanature";
+            System.arraycopy(natures, 0, newNatures, 1, natures.length);
+            desc.setNatureIds(newNatures);
+        }
 
         // Add Java builder if not already listed
         ICommand[] cmds = desc.getBuildSpec();
+        boolean hasBuilder = false;
         for (ICommand c : cmds)
-            if ("org.eclipse.jdt.core.javabuilder".equals(c.getBuilderName())) {
-                project.setDescription(desc, new NullProgressMonitor());
-                return;
-            }
-        ICommand javaCmd = desc.newCommand();
-        javaCmd.setBuilderName("org.eclipse.jdt.core.javabuilder");
-        ICommand[] newCmds = new ICommand[cmds.length + 1];
-        newCmds[0] = javaCmd;
-        System.arraycopy(cmds, 0, newCmds, 1, cmds.length);
-        desc.setBuildSpec(newCmds);
+            if ("org.eclipse.jdt.core.javabuilder".equals(c.getBuilderName())) { hasBuilder = true; break; }
+        if (!hasBuilder) {
+            ICommand javaCmd = desc.newCommand();
+            javaCmd.setBuilderName("org.eclipse.jdt.core.javabuilder");
+            ICommand[] newCmds = new ICommand[cmds.length + 1];
+            newCmds[0] = javaCmd;
+            System.arraycopy(cmds, 0, newCmds, 1, cmds.length);
+            desc.setBuildSpec(newCmds);
+        }
 
         project.setDescription(desc, new NullProgressMonitor());
+
+        // Configure standard Maven source directories as classpath source entries.
+        // Without this, Eclipse treats the project root as the source root and
+        // reports "declared package does not match expected package src.main.java.com..."
+        IJavaProject javaProject = JavaCore.create(project);
+        IPath projectPath = project.getFullPath();
+        List<IClasspathEntry> entries = new ArrayList<>();
+        for (String srcDir : new String[]{
+                "src/main/java", "src/main/resources",
+                "src/test/java", "src/test/resources"}) {
+            if (project.getFolder(srcDir).exists())
+                entries.add(JavaCore.newSourceEntry(projectPath.append(srcDir)));
+        }
+        entries.add(JavaCore.newContainerEntry(
+            new Path("org.eclipse.jdt.launching.JRE_CONTAINER")));
+        javaProject.setRawClasspath(
+            entries.toArray(new IClasspathEntry[0]),
+            projectPath.append("target/classes"),
+            new NullProgressMonitor());
     }
 }
