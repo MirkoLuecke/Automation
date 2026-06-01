@@ -53,22 +53,35 @@ public class SetActiveTargetPlatformAction implements IAction {
 
         Bundle pdeCore = Platform.getBundle("org.eclipse.pde.core");
         BundleContext bc = pdeCore.getBundleContext();
+        if (bc == null)
+            throw new Exception("Cannot get BundleContext from org.eclipse.pde.core");
+
         ServiceReference<ITargetPlatformService> ref =
             bc.getServiceReference(ITargetPlatformService.class);
+        if (ref == null)
+            throw new Exception("ITargetPlatformService is not available");
         ITargetPlatformService service = bc.getService(ref);
+        try {
+            ITargetHandle handle = service.getTarget(targetFile.toURI());
+            ITargetDefinition definition = handle.getTargetDefinition();
 
-        ITargetHandle handle = service.getTarget(targetFile.toURI());
-        ITargetDefinition definition = handle.getTargetDefinition();
+            context.getStdout().println("Resolving target platform: " + targetFile.getName());
+            IStatus status = definition.resolve(new TargetMonitor(context));
+            if (!status.isOK())
+                context.getStderr().println("Target resolution status: " + status.getMessage());
+            if (status.getSeverity() == IStatus.ERROR)
+                throw new Exception("Target platform resolution failed: " + status.getMessage());
 
-        context.getStdout().println("Resolving target platform: " + targetFile.getName());
-        IStatus status = definition.resolve(new TargetMonitor(context));
-        if (status.getSeverity() == IStatus.ERROR)
-            throw new Exception("Target platform resolution failed: " + status.getMessage());
-
-        context.getStdout().println("Activating target platform...");
-        LoadTargetDefinitionJob job = new LoadTargetDefinitionJob(definition);
-        job.schedule();
-        job.join();
+            context.getStdout().println("Activating target platform...");
+            LoadTargetDefinitionJob job = new LoadTargetDefinitionJob(definition);
+            job.schedule();
+            job.join();
+            IStatus jobResult = job.getResult();
+            if (jobResult != null && jobResult.getSeverity() == IStatus.ERROR)
+                throw new Exception("Target platform activation failed: " + jobResult.getMessage());
+        } finally {
+            bc.ungetService(ref);
+        }
 
         context.setProgress(100);
     }
