@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<site>
+  <category-def name="pde" label="Eclipse Plug-in Development Environment">
+    <description>Eclipse Plug-in Development Environment (PDE).</description>
+  </category-def>
+  <feature id="org.eclipse.pde" version="3.15.0.v20230605-0440">
+    <category name="pde"/>
+  </feature>
+</site>
