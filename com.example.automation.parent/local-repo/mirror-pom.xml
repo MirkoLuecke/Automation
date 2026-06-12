@@ -39,7 +39,9 @@
                 </iu>
               </ius>
               <destination>${project.basedir}/p2/pde</destination>
+              <followStrictOnly>true</followStrictOnly>
               <includeOptional>false</includeOptional>
+              <includeNonGreedy>false</includeNonGreedy>
               <includeAllPlatforms>false</includeAllPlatforms>
               <latestVersionOnly>true</latestVersionOnly>
             </configuration>
