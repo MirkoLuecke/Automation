@@ -7,13 +7,16 @@
   <packaging>pom</packaging>
 
   <!--
-    Run this once on a machine with internet access to populate local-repo/p2/pde/.
+    Run this once on a machine with internet access to populate local-repo/p2/.
     Command: mvn package -f local-repo/mirror-pom.xml
     (run from the com.example.automation.parent directory)
 
-    After the mirror, a PowerShell step (exec-maven-plugin) automatically
-    injects the p2 category IU so "Install New Software" groups the feature
-    under "Eclipse Plug-in Development Environment". Script is idempotent.
+    Produces:
+      local-repo/p2/pde/     - Eclipse PDE (required for opening plugin projects)
+      local-repo/p2/swtbot/  - SWTBot (required for running the test suite)
+
+    A PowerShell post-step injects p2 category IUs into each repo so that
+    "Install New Software" groups items by name. Script is idempotent.
   -->
 
   <build>
@@ -23,12 +26,11 @@
         <artifactId>tycho-p2-extras-plugin</artifactId>
         <version>3.0.5</version>
         <executions>
+
           <execution>
             <id>mirror-pde</id>
             <phase>package</phase>
-            <goals>
-              <goal>mirror</goal>
-            </goals>
+            <goals><goal>mirror</goal></goals>
             <configuration>
               <source>
                 <repository>
@@ -50,6 +52,33 @@
               <latestVersionOnly>true</latestVersionOnly>
             </configuration>
           </execution>
+
+          <execution>
+            <id>mirror-swtbot</id>
+            <phase>package</phase>
+            <goals><goal>mirror</goal></goals>
+            <configuration>
+              <source>
+                <repository>
+                  <url>https://download.eclipse.org/technology/swtbot/releases/latest/</url>
+                  <layout>p2</layout>
+                </repository>
+              </source>
+              <ius>
+                <iu>
+                  <id>org.eclipse.swtbot.eclipse.feature.group</id>
+                  <version>0.0.0</version>
+                </iu>
+              </ius>
+              <destination>${project.basedir}/p2/swtbot</destination>
+              <followStrictOnly>true</followStrictOnly>
+              <includeOptional>false</includeOptional>
+              <includeNonGreedy>false</includeNonGreedy>
+              <includeAllPlatforms>false</includeAllPlatforms>
+              <latestVersionOnly>true</latestVersionOnly>
+            </configuration>
+          </execution>
+
         </executions>
       </plugin>
 
@@ -58,25 +87,53 @@
         <artifactId>exec-maven-plugin</artifactId>
         <version>3.1.0</version>
         <executions>
+
           <execution>
             <id>inject-pde-category</id>
             <phase>package</phase>
-            <goals>
-              <goal>exec</goal>
-            </goals>
+            <goals><goal>exec</goal></goals>
             <configuration>
               <executable>powershell</executable>
               <arguments>
                 <argument>-NonInteractive</argument>
-                <argument>-ExecutionPolicy</argument>
-                <argument>Bypass</argument>
+                <argument>-ExecutionPolicy</argument><argument>Bypass</argument>
                 <argument>-File</argument>
-                <argument>${project.basedir}/patch-pde-category.ps1</argument>
+                <argument>${project.basedir}/patch-p2-category.ps1</argument>
                 <argument>-RepoDir</argument>
                 <argument>${project.basedir}/p2/pde</argument>
+                <argument>-CategoryId</argument>
+                <argument>com.example.automation.pde.category</argument>
+                <argument>-CategoryLabel</argument>
+                <argument>Eclipse Plug-in Development Environment</argument>
+                <argument>-FeatureGroupId</argument>
+                <argument>org.eclipse.pde.feature.group</argument>
               </arguments>
             </configuration>
           </execution>
+
+          <execution>
+            <id>inject-swtbot-category</id>
+            <phase>package</phase>
+            <goals><goal>exec</goal></goals>
+            <configuration>
+              <executable>powershell</executable>
+              <arguments>
+                <argument>-NonInteractive</argument>
+                <argument>-ExecutionPolicy</argument><argument>Bypass</argument>
+                <argument>-File</argument>
+                <argument>${project.basedir}/patch-p2-category.ps1</argument>
+                <argument>-RepoDir</argument>
+                <argument>${project.basedir}/p2/swtbot</argument>
+                <argument>-CategoryId</argument>
+                <argument>com.example.automation.swtbot.category</argument>
+                <argument>-CategoryLabel</argument>
+                <argument>SWTBot for Eclipse</argument>
+                <argument>-FeatureGroupId</argument>
+                <argument>org.eclipse.swtbot.eclipse.feature.group</argument>
+              </arguments>
+            </configuration>
+          </execution>
+
         </executions>
       </plugin>
     </plugins>
