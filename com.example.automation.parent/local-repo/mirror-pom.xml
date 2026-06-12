@@ -10,6 +10,10 @@
     Run this once on a machine with internet access to populate local-repo/p2/pde/.
     Command: mvn package -f local-repo/mirror-pom.xml
     (run from the com.example.automation.parent directory)
+
+    After the mirror, a PowerShell step (exec-maven-plugin) automatically
+    injects the p2 category IU so "Install New Software" groups the feature
+    under "Eclipse Plug-in Development Environment". Script is idempotent.
   -->
 
   <build>
@@ -44,6 +48,33 @@
               <includeNonGreedy>false</includeNonGreedy>
               <includeAllPlatforms>false</includeAllPlatforms>
               <latestVersionOnly>true</latestVersionOnly>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.1.0</version>
+        <executions>
+          <execution>
+            <id>inject-pde-category</id>
+            <phase>package</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <executable>powershell</executable>
+              <arguments>
+                <argument>-NonInteractive</argument>
+                <argument>-ExecutionPolicy</argument>
+                <argument>Bypass</argument>
+                <argument>-File</argument>
+                <argument>${project.basedir}/patch-pde-category.ps1</argument>
+                <argument>-RepoDir</argument>
+                <argument>${project.basedir}/p2/pde</argument>
+              </arguments>
             </configuration>
           </execution>
         </executions>
