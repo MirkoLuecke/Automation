@@ -21,7 +21,6 @@
   <properties>
     <tycho.version>3.0.5</tycho.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <jacoco.agent.argLine></jacoco.agent.argLine>
   </properties>
 
   <repositories>
@@ -121,20 +120,6 @@
             </environment>
           </environments>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.jacoco</groupId>
-        <artifactId>jacoco-maven-plugin</artifactId>
-        <version>0.8.12</version>
-        <executions>
-          <execution>
-            <id>prepare-agent</id>
-            <goals><goal>prepare-agent</goal></goals>
-            <configuration>
-              <propertyName>jacoco.agent.argLine</propertyName>
-            </configuration>
-          </execution>
-        </executions>
       </plugin>
     </plugins>
   </build>
