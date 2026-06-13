@@ -4,6 +4,11 @@ import java.util.OptionalInt;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Parses Maven console output lines and converts them to a 0–100 progress percentage.
+ * Recognises {@code [N/M]} module-count markers, phase-name markers in
+ * {@code [INFO] ---} lines, and {@code BUILD SUCCESS}.
+ */
 public class MavenProgressParser {
 
     private static final Pattern NM = Pattern.compile("\\[(\\d+)/(\\d+)\\]");
@@ -11,6 +16,12 @@ public class MavenProgressParser {
     private int currentN = 0;
     private int totalM = 0;
 
+    /**
+     * Parses one line of Maven output and returns the estimated progress percentage.
+     *
+     * @param line a single line from Maven stdout; may be null
+     * @return the estimated percentage (0–100), or empty if the line carries no progress signal
+     */
     public OptionalInt parse(String line) {
         if (line == null) return OptionalInt.empty();
 

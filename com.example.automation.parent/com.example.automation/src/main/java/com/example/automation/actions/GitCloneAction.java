@@ -7,6 +7,12 @@ import java.util.Map;
 import com.example.automation.api.IAction;
 import com.example.automation.api.IActionContext;
 
+/**
+ * {@link com.example.automation.api.IAction} that clones a remote Git repository
+ * by running {@code git clone}, with optional branch selection.
+ *
+ * <p>Config keys: {@code url} (required), {@code targetDir} (required), {@code branch} (optional).
+ */
 public class GitCloneAction implements IAction {
 
     @Override public String getId()          { return "git-clone"; }

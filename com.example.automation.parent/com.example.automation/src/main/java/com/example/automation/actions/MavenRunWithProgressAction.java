@@ -16,6 +16,14 @@ import java.util.regex.Pattern;
 import com.example.automation.api.IAction;
 import com.example.automation.api.IActionContext;
 
+/**
+ * {@link com.example.automation.api.IAction} that runs a Maven build from the command
+ * line and maps Maven's console output to live progress updates using
+ * {@link MavenProgressParser}. Uses {@code powershell.exe} on Windows and {@code sh}
+ * on other systems.
+ *
+ * <p>Config keys: {@code goals} (required), {@code workingDir} (optional).
+ */
 public class MavenRunWithProgressAction implements IAction {
 
     private static final Pattern ANSI_ESCAPE = Pattern.compile("\\[[0-9;]*[mK]");
@@ -90,6 +98,17 @@ public class MavenRunWithProgressAction implements IAction {
         context.setProgress(100);
     }
 
+    /**
+     * Reads Maven stdout line by line, forwards each cleaned line to the context output
+     * stream, and updates progress via the parser. Sets {@code buildFailed[0]} to
+     * {@code true} if a {@code BUILD FAILURE} line is detected.
+     *
+     * @param in          Maven process stdout stream
+     * @param context     action context receiving output and progress updates
+     * @param parser      stateful parser for deriving progress from Maven output
+     * @param buildFailed single-element array; set to {@code true} on build failure
+     * @throws IOException if reading from the stream fails
+     */
     public void processOutputStream(InputStream in, IActionContext context,
                                     MavenProgressParser parser, boolean[] buildFailed)
             throws IOException {

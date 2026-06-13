@@ -7,6 +7,12 @@ import java.util.Map;
 import com.example.automation.api.IAction;
 import com.example.automation.api.IActionContext;
 
+/**
+ * {@link com.example.automation.api.IAction} that checks out a named branch in a
+ * local Git repository by running {@code git checkout}.
+ *
+ * <p>Config keys: {@code repoDir} (required), {@code branch} (required).
+ */
 public class GitCheckoutAction implements IAction {
 
     @Override public String getId()          { return "git-checkout"; }

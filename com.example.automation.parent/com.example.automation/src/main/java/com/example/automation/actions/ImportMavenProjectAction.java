@@ -22,6 +22,13 @@ import org.osgi.framework.Bundle;
 import com.example.automation.api.IAction;
 import com.example.automation.api.IActionContext;
 
+/**
+ * {@link com.example.automation.api.IAction} that scans a directory for Maven modules,
+ * removes all {@code target/} directories, and imports the projects into the Eclipse
+ * workspace using M2E. Waits for M2E's background project-configuration jobs to finish.
+ *
+ * <p>Config keys: {@code pomPath} (required — path to a {@code pom.xml} or its parent directory).
+ */
 public class ImportMavenProjectAction implements IAction {
 
     @Override public String getId()          { return "import-maven-project"; }

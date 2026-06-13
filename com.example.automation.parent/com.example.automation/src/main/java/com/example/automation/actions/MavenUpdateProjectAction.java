@@ -15,6 +15,12 @@ import org.osgi.framework.Bundle;
 import com.example.automation.api.IAction;
 import com.example.automation.api.IActionContext;
 
+/**
+ * {@link com.example.automation.api.IAction} that triggers
+ * <em>Maven &gt; Update Project</em> on a named Eclipse workspace project using M2E.
+ *
+ * <p>Config keys: {@code projectName} (required).
+ */
 public class MavenUpdateProjectAction implements IAction {
 
     @Override public String getId()          { return "maven-update-project"; }

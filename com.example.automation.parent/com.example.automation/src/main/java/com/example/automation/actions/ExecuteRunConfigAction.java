@@ -16,6 +16,13 @@ import org.eclipse.debug.core.model.IProcess;
 import com.example.automation.api.IAction;
 import com.example.automation.api.IActionContext;
 
+/**
+ * {@link com.example.automation.api.IAction} that launches an existing Eclipse
+ * launch configuration by name using the Debug framework, streaming stdout and
+ * stderr to the action context.
+ *
+ * <p>Config keys: {@code configName} (required), {@code mode} (optional, default {@code "run"}).
+ */
 public class ExecuteRunConfigAction implements IAction {
 
     @Override public String getId()          { return "execute-run-config"; }
