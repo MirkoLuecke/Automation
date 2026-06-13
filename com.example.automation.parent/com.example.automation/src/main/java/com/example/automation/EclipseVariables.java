@@ -1,6 +1,8 @@
 package com.example.automation;
 
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.core.variables.VariablesPlugin;
 
 /**
@@ -22,7 +24,12 @@ public final class EclipseVariables {
      */
     public static String resolve(String value) throws CoreException {
         if (value == null || value.isBlank()) return value;
-        return VariablesPlugin.getDefault().getStringVariableManager()
-            .performStringSubstitution(value);
+        VariablesPlugin plugin = VariablesPlugin.getDefault();
+        if (plugin == null)
+            throw new CoreException(new Status(
+                IStatus.ERROR,
+                "com.example.automation",
+                "org.eclipse.core.variables bundle is not active"));
+        return plugin.getStringVariableManager().performStringSubstitution(value);
     }
 }
