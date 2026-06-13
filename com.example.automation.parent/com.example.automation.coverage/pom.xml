@@ -15,6 +15,22 @@
   <artifactId>com.example.automation.coverage</artifactId>
   <packaging>pom</packaging>
 
+  <dependencies>
+    <!-- compile scope: classes + sources included in the report -->
+    <dependency>
+      <groupId>com.example.automation</groupId>
+      <artifactId>com.example.automation</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <!-- test scope: only exec data collected, classes excluded from report -->
+    <dependency>
+      <groupId>com.example.automation</groupId>
+      <artifactId>com.example.automation.tests</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
   <build>
     <plugins>
       <plugin>
@@ -25,11 +41,13 @@
           <execution>
             <id>report</id>
             <phase>verify</phase>
-            <goals><goal>report</goal></goals>
+            <goals><goal>report-aggregate</goal></goals>
             <configuration>
-              <dataFile>${project.basedir}/../com.example.automation.tests/target/jacoco.exec</dataFile>
-              <classesDirectory>${project.basedir}/../com.example.automation/target/classes</classesDirectory>
-              <sourceDirectory>${project.basedir}/../com.example.automation/src/main/java</sourceDirectory>
+              <title>com.example.automation</title>
+              <dataFileIncludes>
+                <dataFileInclude>**/jacoco.exec</dataFileInclude>
+              </dataFileIncludes>
+              <outputDirectory>${project.reporting.outputDirectory}/jacoco</outputDirectory>
             </configuration>
           </execution>
         </executions>
