@@ -95,6 +95,14 @@ public class StepPropertySource implements IPropertySource {
     }
 
     private PropertyDescriptor createConfigDescriptor(String key) {
+        if ("projectName".equals(key)) {
+            return new PropertyDescriptor(key, key) {
+                @Override
+                public org.eclipse.jface.viewers.CellEditor createPropertyEditor(Composite parent) {
+                    return new ProjectComboBoxCellEditor(parent);
+                }
+            };
+        }
         if (isMultiLineField(step.getActionId(), key)) {
             return new PropertyDescriptor(key, key) {
                 @Override

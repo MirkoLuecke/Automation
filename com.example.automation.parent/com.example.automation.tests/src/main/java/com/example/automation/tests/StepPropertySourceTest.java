@@ -130,4 +130,25 @@ public class StepPropertySourceTest {
 
         assertTrue(src(step, reg, saved).isPropertySet("timeout"));
     }
+
+    @Test
+    public void projectName_usesCustomDescriptor() {
+        IAction refreshProject = stub("refresh-project", Map.of("projectName", ""));
+        Step step = new Step("refresh-project");
+        ActionRegistry reg = new ActionRegistry(List.of(refreshProject));
+        boolean[] saved = {false};
+
+        IPropertyDescriptor[] descs = src(step, reg, saved).getPropertyDescriptors();
+
+        IPropertyDescriptor projectNameDesc = null;
+        for (IPropertyDescriptor d : descs) {
+            if ("projectName".equals(d.getId())) {
+                projectNameDesc = d;
+                break;
+            }
+        }
+        assertNotNull("projectName descriptor must exist", projectNameDesc);
+        assertFalse("projectName must not use TextPropertyDescriptor",
+            projectNameDesc instanceof TextPropertyDescriptor);
+    }
 }
