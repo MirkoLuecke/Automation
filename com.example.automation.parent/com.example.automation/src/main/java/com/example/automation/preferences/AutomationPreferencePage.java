@@ -14,6 +14,11 @@ import org.eclipse.ui.IWorkbenchPreferencePage;
 
 import com.example.automation.BundledWorkflowInstaller;
 
+/**
+ * Eclipse preference page ({@code Preferences > Automation}) that configures the
+ * default working directory, workflow storage location, and provides a button to
+ * deploy bundled workflows to the configured storage folder.
+ */
 public class AutomationPreferencePage extends FieldEditorPreferencePage
         implements IWorkbenchPreferencePage {
 

@@ -48,6 +48,12 @@ import com.example.automation.model.StepStatus;
 import com.example.automation.model.Workflow;
 import com.example.automation.persistence.WorkflowRepository;
 
+/**
+ * Eclipse view (ID: {@value #ID}) that displays and runs automation workflows.
+ * Provides a toolbar for workflow management (new, edit, open) and step management
+ * (add, delete, move), plus run/stop controls. Step status is visualised with coloured
+ * squares; output is streamed to the "Automation" console.
+ */
 public class AutomationView extends ViewPart {
 
     public static final String ID = "com.example.automation.view";

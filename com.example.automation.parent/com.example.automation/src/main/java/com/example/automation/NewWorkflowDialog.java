@@ -14,6 +14,11 @@ import org.eclipse.swt.widgets.Text;
 
 import com.example.automation.model.Workflow;
 
+/**
+ * Modal dialog for creating a new workflow or editing an existing one. Derives a
+ * unique workflow ID from the display name by lower-casing, replacing non-alphanumeric
+ * characters with hyphens, and appending a counter if needed.
+ */
 public class NewWorkflowDialog extends TitleAreaDialog {
 
     private final Set<String> existingIds;
@@ -115,16 +120,38 @@ public class NewWorkflowDialog extends TitleAreaDialog {
         super.okPressed();
     }
 
+    /**
+     * Returns the workflow created or updated by the dialog.
+     *
+     * @return the result workflow, or {@code null} if the dialog was cancelled
+     */
     public Workflow getResult() {
         return result;
     }
 
+    /**
+     * Applies the user's edits to an existing workflow in place.
+     *
+     * @param toEdit      the workflow to update; its ID is left unchanged
+     * @param name        the new display name; must not be blank
+     * @param description the new description; may be empty
+     * @return {@code toEdit} after modification
+     */
     public static Workflow applyEdits(Workflow toEdit, String name, String description) {
         toEdit.setDisplayName(name);
         toEdit.setDescription(description);
         return toEdit;
     }
 
+    /**
+     * Derives a unique workflow ID from a display name.
+     * Lower-cases and replaces non-alphanumeric characters with hyphens.
+     * Appends a numeric suffix if the base ID already exists.
+     *
+     * @param displayName the human-readable name to derive an ID from
+     * @param existingIds the set of IDs already in use
+     * @return a non-blank ID not present in {@code existingIds}
+     */
     public static String deriveId(String displayName, Set<String> existingIds) {
         if (displayName == null || displayName.isBlank()) return "workflow";
         String base = displayName.toLowerCase()

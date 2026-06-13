@@ -6,6 +6,11 @@ import org.eclipse.ui.views.properties.IPropertySource;
 import com.example.automation.api.ActionRegistry;
 import com.example.automation.model.Step;
 
+/**
+ * Eclipse {@link IAdapterFactory} that adapts {@link com.example.automation.model.Step}
+ * objects to {@link org.eclipse.ui.views.properties.IPropertySource}, enabling the
+ * Eclipse Properties view to display and edit step configuration.
+ */
 public class StepAdapterFactory implements IAdapterFactory {
 
     private final Runnable save;

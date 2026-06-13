@@ -10,6 +10,11 @@ import org.osgi.framework.BundleContext;
 
 import com.example.automation.preferences.AutomationPreferences;
 
+/**
+ * OSGi bundle activator for {@code com.example.automation}. Registers the plugin's
+ * image registry on startup and installs bundled workflow JSON files into the
+ * configured storage directory on first launch.
+ */
 public class Activator extends AbstractUIPlugin {
 
     public static final String PLUGIN_ID = "com.example.automation";
@@ -33,6 +38,11 @@ public class Activator extends AbstractUIPlugin {
         super.stop(context);
     }
 
+    /**
+     * Returns the shared plugin instance.
+     *
+     * @return the activator singleton, or {@code null} before activation
+     */
     public static Activator getDefault() {
         return plugin;
     }

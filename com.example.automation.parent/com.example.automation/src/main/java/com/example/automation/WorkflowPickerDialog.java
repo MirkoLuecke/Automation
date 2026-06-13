@@ -16,6 +16,10 @@ import org.eclipse.swt.widgets.Shell;
 
 import com.example.automation.model.Workflow;
 
+/**
+ * Modal dialog that lists all available workflows and returns the one selected by
+ * the user. Also displays the resolved workflow storage path in the title area.
+ */
 public class WorkflowPickerDialog extends TitleAreaDialog {
 
     private final List<Workflow> workflows;
@@ -92,5 +96,10 @@ public class WorkflowPickerDialog extends TitleAreaDialog {
         super.okPressed();
     }
 
+    /**
+     * Returns the workflow selected by the user.
+     *
+     * @return the selected workflow, or {@code null} if the dialog was cancelled
+     */
     public Workflow getResult() { return result; }
 }

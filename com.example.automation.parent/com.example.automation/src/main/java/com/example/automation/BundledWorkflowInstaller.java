@@ -13,14 +13,32 @@ import org.osgi.framework.Bundle;
 
 import com.example.automation.preferences.AutomationPreferences;
 
+/**
+ * Copies workflow JSON files bundled inside the plugin (under {@code workflows/}) into the
+ * user-configured workflow storage directory. Runs at most once per installation unless
+ * explicitly triggered from the preference page.
+ */
 public class BundledWorkflowInstaller {
 
+    /**
+     * Copies bundled workflows if they have not already been deployed to this workspace.
+     *
+     * @param resolvedStoragePath the absolute path to the workflow storage directory
+     *                            (Eclipse variables already resolved)
+     */
     public static void installIfNeeded(String resolvedStoragePath) {
         if (!AutomationPreferences.isWorkflowsDeployed()) {
             install(resolvedStoragePath);
         }
     }
 
+    /**
+     * Unconditionally copies all bundled workflow JSON files to the storage directory,
+     * overwriting existing files with the same name.
+     *
+     * @param resolvedStoragePath the absolute path to the workflow storage directory
+     *                            (Eclipse variables already resolved)
+     */
     public static void install(String resolvedStoragePath) {
         Bundle bundle = Platform.getBundle("com.example.automation");
         File targetDir = new File(resolvedStoragePath);

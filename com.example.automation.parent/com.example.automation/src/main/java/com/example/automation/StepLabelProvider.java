@@ -17,10 +17,23 @@ import com.example.automation.api.IAction;
 import com.example.automation.model.Step;
 import com.example.automation.model.StepStatus;
 
+/**
+ * Container for the three {@link org.eclipse.jface.viewers.ColumnLabelProvider}
+ * subclasses used in the Automation view table: {@link Status} (coloured square with
+ * progress), {@link Name} (action name or step label), and {@link Config}
+ * (truncated key=value summary).
+ */
 public class StepLabelProvider {
 
     private StepLabelProvider() {}
 
+    /**
+     * Owner-draw label provider for the Status column. Paints a coloured square
+     * ({@link com.example.automation.model.StepStatus#WHITE} grey,
+     * {@link com.example.automation.model.StepStatus#GREEN} green,
+     * {@link com.example.automation.model.StepStatus#YELLOW} amber with progress %,
+     * {@link com.example.automation.model.StepStatus#RED} red).
+     */
     public static class Status extends OwnerDrawLabelProvider {
 
         private static final int SQUARE = 12;
@@ -86,6 +99,10 @@ public class StepLabelProvider {
         }
     }
 
+    /**
+     * Label provider for the Name column. Returns the step's custom name if set,
+     * otherwise falls back to the action's display name, then to the raw action ID.
+     */
     public static class Name extends ColumnLabelProvider {
         @Override
         public String getText(Object element) {
@@ -97,6 +114,10 @@ public class StepLabelProvider {
         }
     }
 
+    /**
+     * Label provider for the Config column. Returns a comma-separated
+     * {@code key=value} summary of the step's config, truncated to 80 characters.
+     */
     public static class Config extends ColumnLabelProvider {
         private static final int MAX = 80;
 

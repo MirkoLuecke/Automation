@@ -19,6 +19,12 @@ import com.example.automation.model.Step;
 import com.example.automation.model.StepStatus;
 import com.example.automation.preferences.AutomationPreferences;
 
+/**
+ * Executes a list of {@link com.example.automation.model.Step} objects sequentially
+ * in a background daemon thread. Updates step status, streams output to the provided
+ * streams, resolves Eclipse string variables in config values, and notifies the UI
+ * on each status change and on completion.
+ */
 public class WorkflowRunner {
 
     private final List<Step>     steps;
@@ -48,12 +54,21 @@ public class WorkflowRunner {
         this.stderr    = stderr instanceof PrintStream ? (PrintStream) stderr : new PrintStream(stderr);
     }
 
+    /**
+     * Starts executing steps in a background daemon thread. Returns immediately;
+     * the {@code onDone} callback is invoked on the UI thread when execution finishes.
+     */
     public void start() {
         thread = new Thread(this::execute, "WorkflowRunner");
         thread.setDaemon(true);
         thread.start();
     }
 
+    /**
+     * Requests cancellation of the running workflow. The background thread is
+     * interrupted and the current action's {@link com.example.automation.api.IActionContext#isCancelled()}
+     * will return {@code true}.
+     */
     public void cancel() {
         cancelled = true;
         if (thread != null) thread.interrupt();

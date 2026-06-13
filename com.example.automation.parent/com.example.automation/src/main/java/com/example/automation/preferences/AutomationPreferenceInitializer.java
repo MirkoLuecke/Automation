@@ -4,6 +4,10 @@ import org.eclipse.core.runtime.preferences.AbstractPreferenceInitializer;
 import org.eclipse.jface.preference.IPreferenceStore;
 import com.example.automation.Activator;
 
+/**
+ * Registers default values for the Automation plugin's Eclipse preferences when the
+ * plugin is first activated in a workspace.
+ */
 public class AutomationPreferenceInitializer extends AbstractPreferenceInitializer {
 
     @Override

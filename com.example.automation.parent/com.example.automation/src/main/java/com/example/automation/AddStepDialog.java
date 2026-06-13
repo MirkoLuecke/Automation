@@ -18,6 +18,11 @@ import com.example.automation.api.ActionRegistry;
 import com.example.automation.api.IAction;
 import com.example.automation.model.Step;
 
+/**
+ * Modal dialog for selecting an action type when adding a new step to a workflow.
+ * Displays all registered actions in a two-column table (name + description);
+ * the OK button is enabled only when a row is selected.
+ */
 public class AddStepDialog extends TitleAreaDialog {
 
     private final ActionRegistry registry;
@@ -93,8 +98,19 @@ public class AddStepDialog extends TitleAreaDialog {
         super.okPressed();
     }
 
+    /**
+     * Returns the new step created from the selected action, or {@code null} if cancelled.
+     *
+     * @return the created step, pre-populated with the action's default configuration
+     */
     public Step getResult() { return result; }
 
+    /**
+     * Creates a new {@link Step} for the given action, pre-populated with default configuration.
+     *
+     * @param action the action to create a step for; must not be null
+     * @return a new step with {@code actionId} set and config initialised to defaults
+     */
     public static Step createStep(IAction action) {
         Step step = new Step(action.getId());
         step.setConfig(new HashMap<>(action.getDefaultConfig()));

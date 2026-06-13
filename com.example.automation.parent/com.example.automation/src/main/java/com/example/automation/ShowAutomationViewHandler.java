@@ -6,6 +6,10 @@ import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.handlers.HandlerUtil;
 
+/**
+ * Command handler that opens the {@link AutomationView} in the active workbench page.
+ * Bound to the {@code com.example.automation.showView} command in {@code plugin.xml}.
+ */
 public class ShowAutomationViewHandler extends AbstractHandler {
 
     @Override

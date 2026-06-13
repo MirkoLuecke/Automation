@@ -14,6 +14,12 @@ import com.example.automation.api.ActionRegistry;
 import com.example.automation.api.IAction;
 import com.example.automation.model.Step;
 
+/**
+ * {@link org.eclipse.ui.views.properties.IPropertySource} implementation for
+ * {@link com.example.automation.model.Step}. Exposes the action ID as a read-only
+ * property and each config key as an editable text (or multi-line dialog) property.
+ * Saving is delegated to a {@link Runnable} injected at construction time.
+ */
 public class StepPropertySource implements IPropertySource {
 
     private static final String PROP_ACTION = "action";

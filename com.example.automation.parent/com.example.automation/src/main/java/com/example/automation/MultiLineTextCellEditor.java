@@ -10,6 +10,11 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 
+/**
+ * Cell editor for the Eclipse Properties view that opens a resizable multi-line text
+ * dialog when the user clicks the cell. Used for the {@code command} key of
+ * {@code shell-command} and the {@code content} key of {@code write-file} steps.
+ */
 public class MultiLineTextCellEditor extends DialogCellEditor {
 
     public MultiLineTextCellEditor(Composite parent) {
