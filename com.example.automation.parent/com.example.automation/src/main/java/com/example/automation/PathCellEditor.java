@@ -68,7 +68,7 @@ public class PathCellEditor extends DialogCellEditor {
             result = dialog.open();
         }
 
-        if (result == null) return getValue();
+        if (result == null) return null;
         return relativize(result, step);
     }
 
@@ -93,7 +93,7 @@ public class PathCellEditor extends DialogCellEditor {
      * Public to allow direct testing from the test bundle.
      */
     public static String relativize(String absolutePath, Step step) {
-        Path selected = Paths.get(absolutePath);
+        Path selected = Paths.get(absolutePath).toAbsolutePath().normalize();
         String projectName = step.getConfig().get("projectName");
 
         if (projectName != null && !projectName.isBlank()) {
@@ -102,12 +102,14 @@ public class PathCellEditor extends DialogCellEditor {
             if (project.exists()) {
                 IPath projectLoc = project.getLocation();
                 if (projectLoc != null) {
-                    Path projectPath = projectLoc.toFile().toPath();
+                    Path projectPath = projectLoc.toFile().toPath().toAbsolutePath().normalize();
                     try {
                         Path rel = projectPath.relativize(selected);
                         String relStr = rel.toString().replace('\\', '/');
                         if (!relStr.startsWith("../") && !relStr.equals("..")) {
-                            return "${workspace_loc:/" + projectName + "}/" + relStr;
+                            return relStr.isEmpty()
+                                ? "${workspace_loc:/" + projectName + "}"
+                                : "${workspace_loc:/" + projectName + "}/" + relStr;
                         }
                     } catch (IllegalArgumentException ignored) {}
                 }
@@ -116,12 +118,14 @@ public class PathCellEditor extends DialogCellEditor {
 
         IPath wsLoc = ResourcesPlugin.getWorkspace().getRoot().getLocation();
         if (wsLoc != null) {
-            Path wsPath = wsLoc.toFile().toPath();
+            Path wsPath = wsLoc.toFile().toPath().toAbsolutePath().normalize();
             try {
                 Path rel = wsPath.relativize(selected);
                 String relStr = rel.toString().replace('\\', '/');
                 if (!relStr.startsWith("../") && !relStr.equals("..")) {
-                    return "${workspace_loc}/" + relStr;
+                    return relStr.isEmpty()
+                        ? "${workspace_loc}"
+                        : "${workspace_loc}/" + relStr;
                 }
             } catch (IllegalArgumentException ignored) {}
         }

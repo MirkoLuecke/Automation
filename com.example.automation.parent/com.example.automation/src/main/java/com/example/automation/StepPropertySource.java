@@ -103,19 +103,19 @@ public class StepPropertySource implements IPropertySource {
                 }
             };
         }
-        if (isFileField(key)) {
-            return new PropertyDescriptor(key, key) {
-                @Override
-                public org.eclipse.jface.viewers.CellEditor createPropertyEditor(Composite parent) {
-                    return new PathCellEditor(parent, step, PathCellEditor.PathType.FILE);
-                }
-            };
-        }
         if (isDirField(key)) {
             return new PropertyDescriptor(key, key) {
                 @Override
                 public org.eclipse.jface.viewers.CellEditor createPropertyEditor(Composite parent) {
                     return new PathCellEditor(parent, step, PathCellEditor.PathType.DIRECTORY);
+                }
+            };
+        }
+        if (isFileField(key)) {
+            return new PropertyDescriptor(key, key) {
+                @Override
+                public org.eclipse.jface.viewers.CellEditor createPropertyEditor(Composite parent) {
+                    return new PathCellEditor(parent, step, PathCellEditor.PathType.FILE);
                 }
             };
         }
