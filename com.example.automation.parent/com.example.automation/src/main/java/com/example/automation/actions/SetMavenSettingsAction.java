@@ -12,6 +12,12 @@ import org.osgi.framework.Bundle;
 import com.example.automation.api.IAction;
 import com.example.automation.api.IActionContext;
 
+/**
+ * {@link com.example.automation.api.IAction} that updates M2E's Maven user settings
+ * to a given {@code settings.xml} file path.
+ *
+ * <p>Config keys: {@code filePath} (required).
+ */
 public class SetMavenSettingsAction implements IAction {
 
     @Override public String getId()          { return "set-maven-settings"; }

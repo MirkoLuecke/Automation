@@ -19,6 +19,13 @@ import org.osgi.framework.ServiceReference;
 import com.example.automation.api.IAction;
 import com.example.automation.api.IActionContext;
 
+/**
+ * {@link com.example.automation.api.IAction} that loads, resolves, and activates a
+ * {@code .target} file as the Eclipse workspace target platform using PDE's
+ * {@link org.eclipse.pde.core.target.ITargetPlatformService}.
+ *
+ * <p>Config keys: {@code targetFile} (required — absolute path to a {@code .target} file).
+ */
 public class SetActiveTargetPlatformAction implements IAction {
 
     @Override public String getId()          { return "set-active-target-platform"; }

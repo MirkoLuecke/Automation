@@ -9,6 +9,12 @@ import org.eclipse.core.resources.ResourcesPlugin;
 import com.example.automation.api.IAction;
 import com.example.automation.api.IActionContext;
 
+/**
+ * {@link com.example.automation.api.IAction} that refreshes every project in the
+ * Eclipse workspace (equivalent to selecting all projects and pressing F5).
+ *
+ * <p>No config keys.
+ */
 public class RefreshAllAction implements IAction {
 
     @Override public String getId()          { return "refresh-all"; }

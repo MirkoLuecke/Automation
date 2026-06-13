@@ -8,6 +8,13 @@ import java.util.Map;
 import com.example.automation.api.IAction;
 import com.example.automation.api.IActionContext;
 
+/**
+ * {@link com.example.automation.api.IAction} that executes an arbitrary shell command.
+ * Uses {@code powershell.exe -NonInteractive -Command} on Windows and
+ * {@code sh -c} on other systems.
+ *
+ * <p>Config keys: {@code command} (required), {@code workingDir} (optional).
+ */
 public class ShellCommandAction implements IAction {
 
     @Override public String getId()          { return "shell-command"; }
@@ -30,8 +37,11 @@ public class ShellCommandAction implements IAction {
     }
 
     /**
-     * Builds the command list for the current operating system.
-     * Returns powershell.exe on Windows, sh on other systems.
+     * Builds the OS-appropriate command list for the given shell command string.
+     * Returns a {@code powershell.exe} invocation on Windows and a {@code sh} invocation elsewhere.
+     *
+     * @param command the shell command to execute
+     * @return command list ready to pass to {@link ProcessBuilder}
      */
     public static List<String> buildCommand(String command) {
         return System.getProperty("os.name", "").toLowerCase().contains("win")

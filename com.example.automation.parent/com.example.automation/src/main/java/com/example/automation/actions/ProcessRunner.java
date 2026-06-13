@@ -9,6 +9,11 @@ import java.util.concurrent.TimeUnit;
 
 import com.example.automation.api.IActionContext;
 
+/**
+ * Runs an external process, piping stdout and stderr to an
+ * {@link com.example.automation.api.IActionContext}, with cancellation support
+ * and non-zero exit code detection.
+ */
 class ProcessRunner {
 
     static void run(List<String> cmd, File dir, IActionContext context) throws Exception {

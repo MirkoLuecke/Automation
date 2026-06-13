@@ -10,6 +10,13 @@ import java.util.Map;
 import com.example.automation.api.IAction;
 import com.example.automation.api.IActionContext;
 
+/**
+ * {@link com.example.automation.api.IAction} that writes text content to a file,
+ * creating any missing parent directories. Eclipse string variables in config values
+ * are resolved by the workflow runner before this action is invoked.
+ *
+ * <p>Config keys: {@code filePath} (required), {@code content} (optional, defaults to empty string).
+ */
 public class WriteFileAction implements IAction {
 
     @Override public String getId()          { return "write-file"; }
@@ -39,7 +46,15 @@ public class WriteFileAction implements IAction {
         context.setProgress(100);
     }
 
-    /** Public because accessed from the tests bundle; not part of the public API (see Export-Package x-internal in MANIFEST.MF). */
+    /**
+     * Writes {@code content} to {@code filePath}, creating parent directories as needed.
+     * Public because it is called from the tests bundle; not part of the exported API
+     * (see {@code x-internal} in {@code MANIFEST.MF}).
+     *
+     * @param filePath the target file path; must not be blank
+     * @param content  the UTF-8 text to write; may be empty
+     * @throws Exception if the file cannot be created or written
+     */
     public static void writeFile(String filePath, String content) throws Exception {
         Path path = Path.of(filePath);
         if (path.getParent() != null) Files.createDirectories(path.getParent());

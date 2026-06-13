@@ -10,6 +10,12 @@ import org.eclipse.core.resources.ResourcesPlugin;
 import com.example.automation.api.IAction;
 import com.example.automation.api.IActionContext;
 
+/**
+ * {@link com.example.automation.api.IAction} that refreshes a single named project
+ * in the Eclipse workspace.
+ *
+ * <p>Config keys: {@code projectName} (required).
+ */
 public class RefreshProjectAction implements IAction {
 
     @Override public String getId()          { return "refresh-project"; }
