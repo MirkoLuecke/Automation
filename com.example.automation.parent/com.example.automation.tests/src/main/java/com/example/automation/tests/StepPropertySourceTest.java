@@ -151,4 +151,40 @@ public class StepPropertySourceTest {
         assertFalse("projectName must not use TextPropertyDescriptor",
             projectNameDesc instanceof TextPropertyDescriptor);
     }
+
+    @Test
+    public void filePath_usesPathCellEditor() {
+        IAction action = stub("set-code-formatter", Map.of("filePath", ""));
+        Step step = new Step("set-code-formatter");
+        ActionRegistry reg = new ActionRegistry(List.of(action));
+        boolean[] saved = {false};
+
+        IPropertyDescriptor[] descs = src(step, reg, saved).getPropertyDescriptors();
+
+        IPropertyDescriptor filePathDesc = null;
+        for (IPropertyDescriptor d : descs) {
+            if ("filePath".equals(d.getId())) { filePathDesc = d; break; }
+        }
+        assertNotNull("filePath descriptor must exist", filePathDesc);
+        assertFalse("filePath must not use TextPropertyDescriptor",
+            filePathDesc instanceof TextPropertyDescriptor);
+    }
+
+    @Test
+    public void workingDir_usesPathCellEditor() {
+        IAction action = stub("shell-command", Map.of("command", "", "workingDir", ""));
+        Step step = new Step("shell-command");
+        ActionRegistry reg = new ActionRegistry(List.of(action));
+        boolean[] saved = {false};
+
+        IPropertyDescriptor[] descs = src(step, reg, saved).getPropertyDescriptors();
+
+        IPropertyDescriptor workingDirDesc = null;
+        for (IPropertyDescriptor d : descs) {
+            if ("workingDir".equals(d.getId())) { workingDirDesc = d; break; }
+        }
+        assertNotNull("workingDir descriptor must exist", workingDirDesc);
+        assertFalse("workingDir must not use TextPropertyDescriptor",
+            workingDirDesc instanceof TextPropertyDescriptor);
+    }
 }
