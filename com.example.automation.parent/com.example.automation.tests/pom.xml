@@ -24,6 +24,7 @@
         <configuration>
           <useUIHarness>true</useUIHarness>
           <useUIThread>false</useUIThread>
+          <argLine>${jacoco.agent.argLine}</argLine>
         </configuration>
       </plugin>
     </plugins>
