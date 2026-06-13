@@ -48,11 +48,11 @@ public class SetCodeFormatterAction implements IAction {
         String filePath = config.getOrDefault("filePath", "");
         if (filePath.isBlank()) throw new IllegalArgumentException("filePath must not be blank");
 
+        context.setProgress(0);
+
         File file = new File(filePath);
         if (!file.exists())
             throw new Exception("Formatter file not found: " + file.getAbsolutePath());
-
-        context.setProgress(0);
 
         Document doc = DocumentBuilderFactory.newInstance()
             .newDocumentBuilder()
