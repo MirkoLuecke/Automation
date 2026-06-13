@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.example.automation.EclipseVariables;
 import com.example.automation.api.IAction;
 import com.example.automation.api.IActionContext;
 
@@ -60,7 +61,7 @@ public class ShellCommandAction implements IAction {
 
         File dir = workingDir.isBlank()
             ? new File(context.getWorkingDirectory())
-            : new File(workingDir);
+            : new File(EclipseVariables.resolve(workingDir));
 
         ProcessRunner.run(cmd, dir, context);
     }

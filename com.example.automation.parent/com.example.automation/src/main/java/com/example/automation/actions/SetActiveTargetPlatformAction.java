@@ -16,6 +16,7 @@ import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 
+import com.example.automation.EclipseVariables;
 import com.example.automation.api.IAction;
 import com.example.automation.api.IActionContext;
 
@@ -53,7 +54,7 @@ public class SetActiveTargetPlatformAction implements IAction {
         String targetPath = config.get("targetFile");
         if (targetPath == null || targetPath.isBlank())
             throw new IllegalArgumentException("targetFile must not be blank");
-
+        targetPath = EclipseVariables.resolve(targetPath);
         File targetFile = new File(targetPath);
         if (!targetFile.exists())
             throw new Exception(".target file not found at: " + targetFile.getAbsolutePath());

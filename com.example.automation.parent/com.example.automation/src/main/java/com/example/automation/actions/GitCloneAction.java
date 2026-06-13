@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.example.automation.EclipseVariables;
 import com.example.automation.api.IAction;
 import com.example.automation.api.IActionContext;
 
@@ -44,7 +45,7 @@ public class GitCloneAction implements IAction {
             throw new IllegalArgumentException("url must not be blank");
         if (targetDir == null || targetDir.isBlank())
             throw new IllegalArgumentException("targetDir must not be blank");
-
+        targetDir = EclipseVariables.resolve(targetDir);
         List<String> cmd = new ArrayList<>(List.of("git", "clone"));
         if (!branch.isBlank()) { cmd.add("--branch"); cmd.add(branch); }
         cmd.add(url);

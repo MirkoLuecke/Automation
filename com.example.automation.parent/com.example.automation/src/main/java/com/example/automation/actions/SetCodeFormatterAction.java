@@ -14,6 +14,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
+import com.example.automation.EclipseVariables;
 import com.example.automation.api.IAction;
 import com.example.automation.api.IActionContext;
 
@@ -51,6 +52,7 @@ public class SetCodeFormatterAction implements IAction {
 
         context.setProgress(0);
 
+        filePath = EclipseVariables.resolve(filePath);
         File file = new File(filePath);
         if (!file.exists())
             throw new Exception("Formatter file not found: " + file.getAbsolutePath());

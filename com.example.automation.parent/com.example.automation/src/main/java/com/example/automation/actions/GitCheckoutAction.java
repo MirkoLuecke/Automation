@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.example.automation.EclipseVariables;
 import com.example.automation.api.IAction;
 import com.example.automation.api.IActionContext;
 
@@ -43,7 +44,7 @@ public class GitCheckoutAction implements IAction {
             throw new IllegalArgumentException("repoDir must not be blank");
         if (branch == null || branch.isBlank())
             throw new IllegalArgumentException("branch must not be blank");
-
+        repoDir = EclipseVariables.resolve(repoDir);
         ProcessRunner.run(
             List.of("git", "-C", repoDir, "checkout", branch),
             null, context);

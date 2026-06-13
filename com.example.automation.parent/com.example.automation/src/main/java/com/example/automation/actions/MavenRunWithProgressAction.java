@@ -13,6 +13,7 @@ import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import com.example.automation.EclipseVariables;
 import com.example.automation.api.IAction;
 import com.example.automation.api.IActionContext;
 
@@ -54,7 +55,7 @@ public class MavenRunWithProgressAction implements IAction {
         String workingDir = config.getOrDefault("workingDir", "");
         File dir = workingDir.isBlank()
             ? new File(context.getWorkingDirectory())
-            : new File(workingDir);
+            : new File(EclipseVariables.resolve(workingDir));
 
         List<String> cmd = ShellCommandAction.buildCommand("mvn " + goals);
         ProcessBuilder pb = new ProcessBuilder(cmd);

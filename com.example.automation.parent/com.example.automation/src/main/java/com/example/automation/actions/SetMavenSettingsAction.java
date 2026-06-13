@@ -9,6 +9,7 @@ import org.eclipse.core.runtime.Platform;
 import org.eclipse.m2e.core.MavenPlugin;
 import org.osgi.framework.Bundle;
 
+import com.example.automation.EclipseVariables;
 import com.example.automation.api.IAction;
 import com.example.automation.api.IActionContext;
 
@@ -47,6 +48,7 @@ public class SetMavenSettingsAction implements IAction {
         String filePath = config.getOrDefault("filePath", "");
         if (filePath.isBlank()) throw new IllegalArgumentException("filePath must not be blank");
         context.setProgress(0);
+        filePath = EclipseVariables.resolve(filePath);
         MavenPlugin.getMavenConfiguration().setUserSettingsFile(filePath);
         context.getStdout().println("Maven user settings set to: "
             + Path.of(filePath).toAbsolutePath());

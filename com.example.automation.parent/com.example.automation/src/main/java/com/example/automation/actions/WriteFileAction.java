@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.example.automation.EclipseVariables;
 import com.example.automation.api.IAction;
 import com.example.automation.api.IActionContext;
 
@@ -41,6 +42,7 @@ public class WriteFileAction implements IAction {
         String filePath = config.getOrDefault("filePath", "");
         String content  = config.getOrDefault("content", "");
         context.setProgress(0);
+        filePath = EclipseVariables.resolve(filePath);
         writeFile(filePath, content);
         context.getStdout().println("Written: " + Path.of(filePath).toAbsolutePath());
         context.setProgress(100);

@@ -19,6 +19,7 @@ import org.eclipse.m2e.core.project.MavenProjectInfo;
 import org.eclipse.m2e.core.project.ProjectImportConfiguration;
 import org.osgi.framework.Bundle;
 
+import com.example.automation.EclipseVariables;
 import com.example.automation.api.IAction;
 import com.example.automation.api.IActionContext;
 
@@ -54,7 +55,7 @@ public class ImportMavenProjectAction implements IAction {
         String pomPath = config.get("pomPath");
         if (pomPath == null || pomPath.isBlank())
             throw new IllegalArgumentException("pomPath must not be blank");
-
+        pomPath = EclipseVariables.resolve(pomPath);
         File pomFile = new File(pomPath);
         if (pomFile.isDirectory()) pomFile = new File(pomFile, "pom.xml");
         if (!pomFile.exists())
