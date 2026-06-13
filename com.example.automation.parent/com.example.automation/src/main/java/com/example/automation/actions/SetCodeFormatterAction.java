@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.InstanceScope;
@@ -54,9 +55,13 @@ public class SetCodeFormatterAction implements IAction {
         if (!file.exists())
             throw new Exception("Formatter file not found: " + file.getAbsolutePath());
 
-        Document doc = DocumentBuilderFactory.newInstance()
-            .newDocumentBuilder()
-            .parse(file);
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        dbf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+        dbf.setFeature("http://xml.org/sax/features/external-general-entities", false);
+        dbf.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+        dbf.setXIncludeAware(false);
+        dbf.setExpandEntityReferences(false);
+        Document doc = dbf.newDocumentBuilder().parse(file);
 
         NodeList profiles = doc.getElementsByTagName("profile");
         Element profile = null;
