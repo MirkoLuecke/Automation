@@ -13,8 +13,7 @@ import com.example.automation.api.IActionContext;
 
 /**
  * {@link com.example.automation.api.IAction} that writes text content to a file,
- * creating any missing parent directories. Eclipse string variables in config values
- * are resolved by the workflow runner before this action is invoked.
+ * creating any missing parent directories.
  *
  * <p>Config keys: {@code filePath} (required), {@code content} (optional, defaults to empty string).
  */
@@ -43,6 +42,7 @@ public class WriteFileAction implements IAction {
         String content  = config.getOrDefault("content", "");
         context.setProgress(0);
         filePath = EclipseVariables.resolve(filePath);
+        content  = EclipseVariables.resolve(content);
         writeFile(filePath, content);
         context.getStdout().println("Written: " + Path.of(filePath).toAbsolutePath());
         context.setProgress(100);
