@@ -2,12 +2,18 @@ package com.example.automation.tests;
 
 import static org.junit.Assert.*;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import com.example.automation.actions.ShellCommandAction;
+import com.example.automation.api.IActionContext;
 
 public class ShellCommandActionTest {
 
@@ -60,5 +66,28 @@ public class ShellCommandActionTest {
     @Test
     public void getName_returnsShellCommand() {
         assertEquals("Shell Command", new ShellCommandAction().getName());
+    }
+
+    @Rule
+    public TemporaryFolder tmp = new TemporaryFolder();
+
+    @Test
+    public void execute_shellCommand_outputContainsHello() throws Exception {
+        boolean isWindows = System.getProperty("os.name", "").toLowerCase().contains("win");
+        String cmd = isWindows ? "Write-Output hello" : "echo hello";
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        new ShellCommandAction().execute(
+            Map.of("command", cmd, "workingDir", tmp.getRoot().getAbsolutePath()),
+            capturingCtx(baos));
+        assertTrue("output must contain 'hello'", baos.toString().trim().contains("hello"));
+    }
+
+    private static IActionContext capturingCtx(ByteArrayOutputStream baos) {
+        return new IActionContext() {
+            @Override public OutputStream getOutputStream() { return baos; }
+            @Override public OutputStream getErrorStream()  { return OutputStream.nullOutputStream(); }
+            @Override public void setProgress(int p)        {}
+            @Override public boolean isCancelled()          { return false; }
+        };
     }
 }
