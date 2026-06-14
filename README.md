@@ -8,30 +8,19 @@ An Eclipse plugin that lets you define, manage, and run multi-step automation wo
 
 ## Installation
 
-### 1. Build the update site
+The repository already contains a pre-built update site at
+`com.example.automation.parent/local-repo/p2/automation-plugin/` — no build step is needed to install.
 
-From a terminal in the repository root:
-
-```
-cd com.example.automation.parent
-mvn clean verify
-```
-
-This builds the plugin and automatically copies the p2 update site to:
-`com.example.automation.parent/local-repo/p2/automation-plugin/`
-
-> **Note:** `local-repo/p2/automation-plugin/` is kept in sync with the build — it is a copy of `com.example.automation.site/target/repository` and is refreshed automatically on every `mvn clean verify`.
-
-### 2. Install in Eclipse
+### Install in Eclipse
 
 1. Open Eclipse and go to **Help → Install New Software…**
 2. Click **Add…**, then **Local…**, and browse to `com.example.automation.parent/local-repo/p2/automation-plugin/`.
 3. Select **Automation** from the feature list and click **Next → Finish**.
 4. Restart Eclipse when prompted.
 
-> **After a rebuild:** Eclipse caches p2 repository metadata. If you rebuild the plugin and reinstall, go to **Manage…** in the Install Software dialog, remove the existing entry, and re-add it. Otherwise Eclipse may report version errors or "no categorized items."
-
 After installation, open the view via **Project → Automation** or **Window → Show View → Other… → Automation**.
+
+> **After changing the source code:** Run `mvn clean verify` from `com.example.automation.parent/`. This rebuilds the plugin and automatically refreshes `local-repo/p2/automation-plugin/` with the new artifacts. Then reinstall: go to **Manage…** in the Install Software dialog, remove the existing entry, re-add it, and update.
 
 ---
 
@@ -40,8 +29,8 @@ After installation, open the view via **Project → Automation** or **Window →
 | Term | Meaning |
 |---|---|
 | **Workflow** | A named, ordered list of steps. Stored as a JSON file in the workflow storage folder. |
-| **Step** | A single unit of work: one action type plus its configuration values. |
-| **Action** | A built-in capability (Shell Command, Git Clone, Maven Run, etc.) registered with the plugin. |
+| **Action** | A built-in capability type registered with the plugin — for example *Shell Command*, *Git Clone*, or *Maven Run*. Actions define what fields can be configured; they are not tied to any specific workflow. |
+| **Step** | One use of an action inside a workflow, with its own configuration values filled in. A workflow can contain multiple steps that use the same action type — for example, two *Shell Command* steps running different commands. |
 
 Workflow JSON files are plain text. You can open, read, and edit them in any text editor.
 
