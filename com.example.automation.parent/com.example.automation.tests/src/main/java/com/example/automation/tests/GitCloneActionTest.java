@@ -28,14 +28,6 @@ public class GitCloneActionTest {
     public void createBareRepo() throws Exception {
         source = tmp.newFolder("source.git");
         runGit(source, "init", "--bare");
-
-        File work = tmp.newFolder("work");
-        runGit(work, "init");
-        runGit(work, "config", "user.email", "test@example.com");
-        runGit(work, "config", "user.name", "Test");
-        runGit(work, "commit", "--allow-empty", "-m", "init");
-        runGit(work, "remote", "add", "origin", source.getAbsolutePath());
-        runGit(work, "push", "-u", "origin", "master");
     }
 
     @Test
@@ -72,8 +64,13 @@ public class GitCloneActionTest {
     @Test
     public void execute_clonesLocalRepo_targetDirHasGitDirectory() throws Exception {
         File target = new File(tmp.getRoot(), "clone");
+        String url = source.toURI().toString();
+        // Fix Windows file:/ URIs to proper file:/// format for git compatibility
+        if (url.startsWith("file:/") && !url.startsWith("file:///")) {
+            url = "file:///" + url.substring(6);
+        }
         new GitCloneAction().execute(
-            Map.of("url", source.getAbsolutePath(),
+            Map.of("url", url,
                    "targetDir", target.getAbsolutePath(),
                    "branch", ""),
             nullCtx());
