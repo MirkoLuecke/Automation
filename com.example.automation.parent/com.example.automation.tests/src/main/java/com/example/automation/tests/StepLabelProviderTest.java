@@ -1,7 +1,6 @@
 package com.example.automation.tests;
 
 import static org.junit.Assert.*;
-import java.util.Map;
 import org.junit.Test;
 import com.example.automation.StepLabelProvider;
 import com.example.automation.model.Step;
