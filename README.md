@@ -103,6 +103,8 @@ The Properties View shows two sections:
 
 **Special behaviour for Shell Command:** The `command` field uses a multi-line text editor (five rows tall, with a vertical scrollbar). Press **Ctrl+Enter** to commit the value. The Enter key alone inserts a newline inside the command.
 
+**File and directory fields:** Configuration fields that hold a file or directory path (e.g., `filePath`, `targetDir`, `repoDir`, `workingDir`, `pomPath`, `targetFile`) show a **…** button next to the value cell. Clicking it opens a native OS file or directory picker. The selected path is automatically stored as an Eclipse variable expression — project-relative (`${workspace_loc:/ProjectName}/…`) if the path is inside a workspace project, workspace-relative (`${workspace_loc}/…`) if it is inside the workspace root but not a specific project, or as an absolute path otherwise.
+
 ---
 
 ## Action Reference
@@ -203,6 +205,35 @@ Sets the Maven user settings file in Eclipse's M2E configuration. Equivalent to 
 | `filePath` | Yes | Path to the settings.xml file. Eclipse variables are supported. |
 
 Requires M2E (Maven Integration for Eclipse) to be installed.
+
+### Set Code Formatter
+
+Reads an Eclipse formatter XML profile and applies its settings to the workspace-level JDT code style preferences. Equivalent to importing a profile via **Window > Preferences > Java > Code Style > Formatter > Import…**.
+
+| Field | Required | Description |
+|---|---|---|
+| `filePath` | Yes | Path to an Eclipse formatter XML export file. Eclipse variables are supported. |
+
+### Set Active Target Platform
+
+Loads, resolves, and activates a `.target` file as the Eclipse workspace target platform. Equivalent to opening the file in PDE and clicking **Set as Active Target Platform**.
+
+| Field | Required | Description |
+|---|---|---|
+| `targetFile` | Yes | Path to a `.target` file. Eclipse variables are supported. |
+
+Requires the Eclipse Plug-in Development Environment (PDE).
+
+### Set Save Actions
+
+Enables or disables Eclipse's workspace-level JDT save actions: organize imports and format edited lines. Equivalent to configuring **Window > Preferences > Java > Editor > Save Actions**.
+
+| Field | Default | Description |
+|---|---|---|
+| `organizeImports` | `true` | When `true`, organizes imports every time a Java file is saved. |
+| `formatEditedLines` | `true` | When `true`, formats only the edited lines every time a Java file is saved. |
+
+Both fields accept `true` or `false` (case-insensitive). The master save-actions switch is turned on automatically when either feature is enabled, and turned off when both are disabled.
 
 ---
 
