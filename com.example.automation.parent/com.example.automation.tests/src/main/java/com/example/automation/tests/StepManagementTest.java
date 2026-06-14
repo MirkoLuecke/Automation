@@ -22,7 +22,8 @@ public class StepManagementTest {
     private static SWTWorkbenchBot bot;
     private static WorkflowRepository repo;
 
-    private static final String WF_EMPTY      = "step-mgmt-empty";
+    private static final String WF_ADD        = "step-mgmt-add";
+    private static final String WF_DELETE     = "step-mgmt-delete";
     private static final String WF_TWO_STEPS  = "step-mgmt-two-steps";
 
     @BeforeClass
@@ -32,7 +33,9 @@ public class StepManagementTest {
         String path = svm.performStringSubstitution(AutomationPreferences.getWorkflowStoragePath());
         repo = new WorkflowRepository(new File(path));
 
-        repo.save(new Workflow(WF_EMPTY, "Step Mgmt Empty", ""));
+        // Separate fixtures so each test starts with 0 steps regardless of test order
+        repo.save(new Workflow(WF_ADD,    "Step Mgmt Add",    ""));
+        repo.save(new Workflow(WF_DELETE, "Step Mgmt Delete", ""));
 
         Workflow twoStep = new Workflow(WF_TWO_STEPS, "Step Mgmt Two Steps", "");
         twoStep.getSteps().add(new Step("refresh-all"));
@@ -48,7 +51,8 @@ public class StepManagementTest {
 
     @AfterClass
     public static void tearDown() throws Exception {
-        repo.delete(WF_EMPTY);
+        repo.delete(WF_ADD);
+        repo.delete(WF_DELETE);
         repo.delete(WF_TWO_STEPS);
     }
 
@@ -66,7 +70,7 @@ public class StepManagementTest {
 
     @Test
     public void addStep_addsRowToTable() {
-        loadWorkflow("Step Mgmt Empty");
+        loadWorkflow("Step Mgmt Add");
         bot.viewById("com.example.automation.view").bot()
             .toolbarButtonWithTooltip("Add Step").click();
         // Select the first available action and confirm
@@ -78,7 +82,7 @@ public class StepManagementTest {
 
     @Test
     public void deleteStep_withStepSelected_removesRow() {
-        loadWorkflow("Step Mgmt Empty");
+        loadWorkflow("Step Mgmt Delete");
         // Add a step first
         bot.viewById("com.example.automation.view").bot()
             .toolbarButtonWithTooltip("Add Step").click();
