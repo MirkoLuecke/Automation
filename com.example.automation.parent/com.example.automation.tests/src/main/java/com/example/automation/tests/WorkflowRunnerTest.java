@@ -3,10 +3,12 @@ package com.example.automation.tests;
 import static org.junit.Assert.*;
 
 import java.io.OutputStream;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Test;
 
@@ -94,5 +96,80 @@ public class WorkflowRunnerTest {
         run(List.of(step), new ActionRegistry(List.of(stub("a", ctx -> ctx.setProgress(50)))));
         assertEquals(50, step.getProgress());
         assertEquals(StepStatus.GREEN, step.getStatus());
+    }
+
+    @Test
+    public void multipleSteps_allGreen() throws Exception {
+        Step step1 = new Step("a");
+        Step step2 = new Step("b");
+        ActionRegistry reg = new ActionRegistry(List.of(
+            stub("a", ctx -> {}),
+            stub("b", ctx -> {})
+        ));
+        run(List.of(step1, step2), reg);
+        assertEquals(StepStatus.GREEN, step1.getStatus());
+        assertEquals(StepStatus.GREEN, step2.getStatus());
+    }
+
+    @Test
+    public void configIsPassedToAction() throws Exception {
+        AtomicReference<Map<String, String>> received = new AtomicReference<>();
+        Step step = new Step("a");
+        step.getConfig().put("myKey", "myValue");
+        IAction action = new IAction() {
+            @Override public String getId() { return "a"; }
+            @Override public String getName() { return "a"; }
+            @Override public String getDescription() { return ""; }
+            @Override public Map<String, String> getDefaultConfig() { return Map.of(); }
+            @Override public List<String> validate(Map<String, String> c) { return List.of(); }
+            @Override public void execute(Map<String, String> config, IActionContext ctx) {
+                received.set(new HashMap<>(config));
+            }
+        };
+        run(List.of(step), new ActionRegistry(List.of(action)));
+        assertEquals("myValue", received.get().get("myKey"));
+    }
+
+    @Test
+    public void invalidVariable_rawValuePassedToAction() throws Exception {
+        String raw = "${undefined_xyz_abc_no_such_variable_123}";
+        AtomicReference<Map<String, String>> received = new AtomicReference<>();
+        Step step = new Step("a");
+        step.getConfig().put("key", raw);
+        IAction action = new IAction() {
+            @Override public String getId() { return "a"; }
+            @Override public String getName() { return "a"; }
+            @Override public String getDescription() { return ""; }
+            @Override public Map<String, String> getDefaultConfig() { return Map.of(); }
+            @Override public List<String> validate(Map<String, String> c) { return List.of(); }
+            @Override public void execute(Map<String, String> config, IActionContext ctx) {
+                received.set(new HashMap<>(config));
+            }
+        };
+        run(List.of(step), new ActionRegistry(List.of(action)));
+        assertEquals(StepStatus.GREEN, step.getStatus());
+        assertEquals(raw, received.get().get("key"));
+    }
+
+    @Test
+    public void cancelDuringExecution_stayYellow() throws Exception {
+        CountDownLatch started = new CountDownLatch(1);
+        CountDownLatch done = new CountDownLatch(1);
+        Step step = new Step("a");
+        WorkflowRunner runner = new WorkflowRunner(
+            List.of(step),
+            new ActionRegistry(List.of(stub("a", ctx -> {
+                started.countDown();
+                while (!ctx.isCancelled()) {
+                    try { Thread.sleep(10); } catch (InterruptedException e) { return; }
+                }
+            }))),
+            r -> r.run(), () -> {}, done::countDown,
+            OutputStream.nullOutputStream(), OutputStream.nullOutputStream());
+        runner.start();
+        assertTrue("Action did not start in 5 s", started.await(5, TimeUnit.SECONDS));
+        runner.cancel();
+        assertTrue("Runner did not finish in 5 s", done.await(5, TimeUnit.SECONDS));
+        assertEquals(StepStatus.YELLOW, step.getStatus());
     }
 }
