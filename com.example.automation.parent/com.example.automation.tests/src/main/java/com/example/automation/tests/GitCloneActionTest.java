@@ -64,13 +64,8 @@ public class GitCloneActionTest {
     @Test
     public void execute_clonesLocalRepo_targetDirHasGitDirectory() throws Exception {
         File target = new File(tmp.getRoot(), "clone");
-        String url = source.toURI().toString();
-        // Fix Windows file:/ URIs to proper file:/// format for git compatibility
-        if (url.startsWith("file:/") && !url.startsWith("file:///")) {
-            url = "file:///" + url.substring(6);
-        }
         new GitCloneAction().execute(
-            Map.of("url", url,
+            Map.of("url", source.getAbsolutePath(),
                    "targetDir", target.getAbsolutePath(),
                    "branch", ""),
             nullCtx());
