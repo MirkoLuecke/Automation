@@ -30,4 +30,13 @@ public class WriteFileActionTest {
         assertTrue(cfg.containsKey("content"));
     }
 
+    @Test
+    public void getId_returnsWriteFile() {
+        assertEquals("write-file", new WriteFileAction().getId());
+    }
+
+    @Test
+    public void getName_returnsWriteFile() {
+        assertEquals("Write File", new WriteFileAction().getName());
+    }
 }

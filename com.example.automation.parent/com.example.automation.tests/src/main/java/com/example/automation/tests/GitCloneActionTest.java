@@ -31,4 +31,14 @@ public class GitCloneActionTest {
             Map.of("url", "https://example.com/repo.git", "targetDir", "/tmp/repo"));
         assertTrue(errors.isEmpty());
     }
+
+    @Test
+    public void getId_returnsGitClone() {
+        assertEquals("git-clone", new GitCloneAction().getId());
+    }
+
+    @Test
+    public void getName_returnsGitClone() {
+        assertEquals("Git Clone", new GitCloneAction().getName());
+    }
 }

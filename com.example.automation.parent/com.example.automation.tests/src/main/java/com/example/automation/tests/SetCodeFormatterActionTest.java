@@ -88,4 +88,14 @@ public class SetCodeFormatterActionTest {
         List<String> errors = new SetCodeFormatterAction().validate(Map.of("filePath", ""));
         assertFalse("validate() must reject blank filePath", errors.isEmpty());
     }
+
+    @Test
+    public void getId_returnsSetCodeFormatter() {
+        assertEquals("set-code-formatter", new SetCodeFormatterAction().getId());
+    }
+
+    @Test
+    public void getName_returnsSetCodeFormatter() {
+        assertEquals("Set Code Formatter", new SetCodeFormatterAction().getName());
+    }
 }

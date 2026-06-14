@@ -27,4 +27,14 @@ public class ExecuteRunConfigActionTest {
     public void defaultConfig_modeIsRun() {
         assertEquals("run", new ExecuteRunConfigAction().getDefaultConfig().get("mode"));
     }
+
+    @Test
+    public void getId_returnsExecuteRunConfig() {
+        assertEquals("execute-run-config", new ExecuteRunConfigAction().getId());
+    }
+
+    @Test
+    public void getName_returnsExecuteRunConfig() {
+        assertEquals("Execute Run Configuration", new ExecuteRunConfigAction().getName());
+    }
 }

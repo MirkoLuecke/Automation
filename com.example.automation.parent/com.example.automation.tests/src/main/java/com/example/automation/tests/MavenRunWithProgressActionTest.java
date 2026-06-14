@@ -78,4 +78,14 @@ public class MavenRunWithProgressActionTest {
             @Override public boolean isCancelled()          { return false; }
         };
     }
+
+    @Test
+    public void getId_returnsMavenRunWithProgress() {
+        assertEquals("maven-run-with-progress", new MavenRunWithProgressAction().getId());
+    }
+
+    @Test
+    public void getName_returnsMavenRunWithProgress() {
+        assertEquals("Maven Run with Progress", new MavenRunWithProgressAction().getName());
+    }
 }

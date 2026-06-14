@@ -51,4 +51,14 @@ public class ShellCommandActionTest {
             assertEquals("echo hi", cmd.get(2));
         }
     }
+
+    @Test
+    public void getId_returnsShellCommand() {
+        assertEquals("shell-command", new ShellCommandAction().getId());
+    }
+
+    @Test
+    public void getName_returnsShellCommand() {
+        assertEquals("Shell Command", new ShellCommandAction().getName());
+    }
 }

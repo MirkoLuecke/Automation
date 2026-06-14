@@ -105,4 +105,14 @@ public class ImportMavenProjectActionTest {
             @Override public boolean isCancelled()          { return false; }
         };
     }
+
+    @Test
+    public void getId_returnsImportMavenProject() {
+        assertEquals("import-maven-project", new ImportMavenProjectAction().getId());
+    }
+
+    @Test
+    public void getName_returnsImportMavenProject() {
+        assertEquals("Import Maven Project", new ImportMavenProjectAction().getName());
+    }
 }

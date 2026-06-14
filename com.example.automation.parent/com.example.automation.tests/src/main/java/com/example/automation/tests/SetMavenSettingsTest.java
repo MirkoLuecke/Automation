@@ -29,4 +29,14 @@ public class SetMavenSettingsTest {
         Map<String, String> cfg = new SetMavenSettingsAction().getDefaultConfig();
         assertTrue(cfg.containsKey("filePath"));
     }
+
+    @Test
+    public void getId_returnsSetMavenSettings() {
+        assertEquals("set-maven-settings", new SetMavenSettingsAction().getId());
+    }
+
+    @Test
+    public void getName_returnsSetMavenSettings() {
+        assertEquals("Set Maven Settings", new SetMavenSettingsAction().getName());
+    }
 }

@@ -31,4 +31,14 @@ public class GitCheckoutActionTest {
             Map.of("repoDir", "/tmp/repo", "branch", "main"));
         assertTrue(errors.isEmpty());
     }
+
+    @Test
+    public void getId_returnsGitCheckout() {
+        assertEquals("git-checkout", new GitCheckoutAction().getId());
+    }
+
+    @Test
+    public void getName_returnsGitCheckout() {
+        assertEquals("Git Checkout", new GitCheckoutAction().getName());
+    }
 }

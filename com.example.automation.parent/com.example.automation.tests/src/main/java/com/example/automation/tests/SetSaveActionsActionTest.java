@@ -100,4 +100,14 @@ public class SetSaveActionsActionTest {
         assertTrue(new SetSaveActionsAction().validate(
             Map.of("organizeImports", "false", "formatEditedLines", "false")).isEmpty());
     }
+
+    @Test
+    public void getId_returnsSetSaveActions() {
+        assertEquals("set-save-actions", new SetSaveActionsAction().getId());
+    }
+
+    @Test
+    public void getName_returnsSetSaveActions() {
+        assertEquals("Set Save Actions", new SetSaveActionsAction().getName());
+    }
 }

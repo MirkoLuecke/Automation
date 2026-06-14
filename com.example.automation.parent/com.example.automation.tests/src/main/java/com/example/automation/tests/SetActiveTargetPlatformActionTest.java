@@ -30,4 +30,9 @@ public class SetActiveTargetPlatformActionTest {
         assertEquals("set-active-target-platform",
             new SetActiveTargetPlatformAction().getId());
     }
+
+    @Test
+    public void getName_returnsSetActiveTargetPlatform() {
+        assertEquals("Set Active Target Platform", new SetActiveTargetPlatformAction().getName());
+    }
 }
