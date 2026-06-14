@@ -1,8 +1,9 @@
-package com.example.automation.tests;
+﻿package com.example.automation.tests;
 
 import static org.junit.Assert.*;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -10,13 +11,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import com.example.automation.actions.MavenProgressParser;
 import com.example.automation.actions.MavenRunWithProgressAction;
 import com.example.automation.api.IActionContext;
 
 public class MavenRunWithProgressActionTest {
+
+    @Rule
+    public TemporaryFolder tmp = new TemporaryFolder();
 
     private static final String ESC = "";
 
@@ -87,5 +93,15 @@ public class MavenRunWithProgressActionTest {
     @Test
     public void getName_returnsMavenRunWithProgress() {
         assertEquals("Maven Run with Progress", new MavenRunWithProgressAction().getName());
+    }
+
+    @Test
+    public void execute_mvnVersion_progressReaches100() throws Exception {
+        List<Integer> progress = new ArrayList<>();
+        new MavenRunWithProgressAction().execute(
+            Map.of("goals", "--version",
+                   "workingDir", tmp.getRoot().getAbsolutePath()),
+            stubContext(progress));
+        assertTrue("progress must reach 100", progress.contains(100));
     }
 }
