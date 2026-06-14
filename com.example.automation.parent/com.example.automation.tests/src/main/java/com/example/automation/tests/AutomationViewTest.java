@@ -102,6 +102,41 @@ public class AutomationViewTest {
     }
 
     @Test
+    public void longWorkflowDescription_isTruncatedInHeader() throws Exception {
+        WorkflowRepository repo = testRepo();
+        String longDesc = "This is a deliberately long workflow description "
+            + "that exceeds one hundred characters and must be truncated in the view header.";
+        assertTrue("Test setup: description must be longer than 100 chars", longDesc.length() > 100);
+        Workflow wf = new Workflow("desc-truncation-test", "Desc Truncation Test", longDesc);
+        repo.save(wf);
+        try {
+            bot.viewById("com.example.automation.view").close();
+            bot.menu("Project").menu("Automation").click();
+
+            bot.viewById("com.example.automation.view").bot()
+               .toolbarButtonWithTooltip("Open Workflow").click();
+            SWTBotTable pickerTable = bot.shell("Open Workflow").bot().table();
+            int rowIndex = -1;
+            for (int i = 0; i < pickerTable.rowCount(); i++) {
+                if ("Desc Truncation Test".equals(pickerTable.cell(i, 0))) {
+                    rowIndex = i;
+                    break;
+                }
+            }
+            assertTrue("Workflow not found in picker", rowIndex >= 0);
+            pickerTable.click(rowIndex, 0);
+            bot.button("OK").click();
+
+            // The description label is the second label (index 1) in the view header.
+            String displayed = bot.viewById("com.example.automation.view").bot().label(1).getText();
+            assertTrue("Displayed description (" + displayed.length() + " chars) must be ≤ 100",
+                displayed.length() <= 100);
+        } finally {
+            repo.delete("desc-truncation-test");
+        }
+    }
+
+    @Test
     public void multipleStepsCanBeSelected() throws Exception {
         WorkflowRepository repo = testRepo();
         Workflow wf = new Workflow("multi-select-test-wf", "Multi Select Test", "test");
