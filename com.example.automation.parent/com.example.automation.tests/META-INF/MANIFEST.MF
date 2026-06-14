@@ -12,6 +12,7 @@ Require-Bundle: com.example.automation,
  org.eclipse.core.variables,
  org.eclipse.core.resources,
  org.eclipse.jdt.core,
+ org.eclipse.m2e.core,
  org.eclipse.m2e.jdt,
  org.junit,
  org.hamcrest.core
