@@ -3,7 +3,6 @@ package com.example.automation.tests;
 import static org.junit.Assert.*;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +15,9 @@ import com.example.automation.actions.ShellCommandAction;
 import com.example.automation.api.IActionContext;
 
 public class ShellCommandActionTest {
+
+    @Rule
+    public TemporaryFolder tmp = new TemporaryFolder();
 
     @Test
     public void validate_rejectsBlankCommand() {
@@ -67,9 +69,6 @@ public class ShellCommandActionTest {
     public void getName_returnsShellCommand() {
         assertEquals("Shell Command", new ShellCommandAction().getName());
     }
-
-    @Rule
-    public TemporaryFolder tmp = new TemporaryFolder();
 
     @Test
     public void execute_shellCommand_outputContainsHello() throws Exception {
