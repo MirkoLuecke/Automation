@@ -119,4 +119,29 @@ public class WorkflowRepositoryTest {
 
         assertFalse(new File(temp.getRoot(), "to-delete.json").exists());
     }
+
+    @Test
+    public void delete_nonExistent_returnsFalse() {
+        assertFalse(repo().delete("never-saved-workflow"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void save_blankId_throwsIllegalArgument() throws Exception {
+        repo().save(new Workflow("", "Name", "desc"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void save_idWithSlash_throwsIllegalArgument() throws Exception {
+        repo().save(new Workflow("a/b", "Name", "desc"));
+    }
+
+    @Test(expected = java.io.IOException.class)
+    public void load_nonExistent_throwsIOException() throws Exception {
+        repo().load("no-such-workflow-xyz");
+    }
+
+    @Test
+    public void list_emptyDir_returnsEmpty() throws Exception {
+        assertTrue(repo().list().isEmpty());
+    }
 }
