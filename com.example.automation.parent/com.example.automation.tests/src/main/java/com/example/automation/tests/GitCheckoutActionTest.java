@@ -72,7 +72,7 @@ public class GitCheckoutActionTest {
             Map.of("repoDir", repo.getAbsolutePath(), "branch", "feature"),
             nullCtx());
         String head = Files.readString(new File(repo, ".git/HEAD").toPath()).trim();
-        assertTrue("HEAD must reference feature branch", head.endsWith("feature"));
+        assertEquals("ref: refs/heads/feature", head);
     }
 
     private static IActionContext nullCtx() {
