@@ -8,11 +8,15 @@ import org.eclipse.jface.viewers.ColumnLabelProvider;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.jface.viewers.TableViewerColumn;
+import org.eclipse.jface.viewers.Viewer;
+import org.eclipse.jface.viewers.ViewerComparator;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Shell;
+import org.eclipse.swt.widgets.TableColumn;
 
 import com.example.automation.api.ActionRegistry;
 import com.example.automation.api.IAction;
@@ -28,6 +32,8 @@ public class AddStepDialog extends TitleAreaDialog {
     private final ActionRegistry registry;
     private TableViewer viewer;
     private Step result;
+    private int sortColumn    = 0;
+    private int sortDirection = SWT.UP;
 
     public AddStepDialog(Shell parent, ActionRegistry registry) {
         super(parent);
@@ -79,6 +85,15 @@ public class AddStepDialog extends TitleAreaDialog {
             }
         });
 
+        viewer.getTable().setSortColumn(nameCol.getColumn());
+        viewer.getTable().setSortDirection(SWT.UP);
+        viewer.setComparator(makeComparator());
+
+        nameCol.getColumn().addSelectionListener(SelectionListener.widgetSelectedAdapter(
+            e -> onSortColumn(nameCol.getColumn(), 0)));
+        descCol.getColumn().addSelectionListener(SelectionListener.widgetSelectedAdapter(
+            e -> onSortColumn(descCol.getColumn(), 1)));
+
         viewer.setInput(registry.getAllActions());
 
         viewer.addSelectionChangedListener(e ->
@@ -89,6 +104,36 @@ public class AddStepDialog extends TitleAreaDialog {
         });
 
         return area;
+    }
+
+    private void onSortColumn(TableColumn col, int colIdx) {
+        if (sortColumn == colIdx)
+            sortDirection = (sortDirection == SWT.UP) ? SWT.DOWN : SWT.UP;
+        else {
+            sortColumn    = colIdx;
+            sortDirection = SWT.UP;
+        }
+        viewer.getTable().setSortColumn(col);
+        viewer.getTable().setSortDirection(sortDirection);
+        viewer.setComparator(makeComparator());
+    }
+
+    private ViewerComparator makeComparator() {
+        return new ViewerComparator() {
+            @Override
+            public int compare(Viewer v, Object o1, Object o2) {
+                IAction a1 = (IAction) o1;
+                IAction a2 = (IAction) o2;
+                String s1 = colIdx == 0 ? a1.getName()
+                    : (a1.getDescription() == null ? "" : a1.getDescription());
+                String s2 = colIdx == 0 ? a2.getName()
+                    : (a2.getDescription() == null ? "" : a2.getDescription());
+                int cmp = s1.compareToIgnoreCase(s2);
+                return dir == SWT.UP ? cmp : -cmp;
+            }
+            final int colIdx = sortColumn;
+            final int dir    = sortDirection;
+        };
     }
 
     @Override

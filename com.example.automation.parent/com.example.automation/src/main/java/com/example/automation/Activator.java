@@ -19,6 +19,7 @@ public class Activator extends AbstractUIPlugin {
 
     public static final String PLUGIN_ID = "com.example.automation";
 
+    public static final String IMG_UP_NAV       = "up_nav";
     public static final String IMG_DOWN_NAV     = "down_nav";
     public static final String IMG_RUN_SELECTED = "run_selected";
     public static final String IMG_EDIT         = "edit";
@@ -49,6 +50,7 @@ public class Activator extends AbstractUIPlugin {
 
     @Override
     protected void initializeImageRegistry(ImageRegistry registry) {
+        registry.put(IMG_UP_NAV,       imageDescriptorFromPlugin(PLUGIN_ID, "icons/up_nav.png"));
         registry.put(IMG_DOWN_NAV,     imageDescriptorFromPlugin(PLUGIN_ID, "icons/down_nav.png"));
         registry.put(IMG_RUN_SELECTED, imageDescriptorFromPlugin(PLUGIN_ID, "icons/run_selected.png"));
         registry.put(IMG_EDIT,         imageDescriptorFromPlugin(PLUGIN_ID, "icons/edit.png"));

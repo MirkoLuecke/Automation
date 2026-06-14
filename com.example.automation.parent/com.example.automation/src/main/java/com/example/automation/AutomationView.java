@@ -134,7 +134,7 @@ public class AutomationView extends ViewPart {
             shared.getImage(ISharedImages.IMG_TOOL_DELETE),
             SelectionListener.widgetSelectedAdapter(e -> onDeleteStep()));
         moveUpItem = makeButton(bar, "Move Step Up",
-            shared.getImage(ISharedImages.IMG_TOOL_UP),
+            Activator.getDefault().getImageRegistry().get(Activator.IMG_UP_NAV),
             SelectionListener.widgetSelectedAdapter(e -> onMoveUp()));
         moveDownItem = makeButton(bar, "Move Step Down",
             Activator.getDefault().getImageRegistry().get(Activator.IMG_DOWN_NAV),
