@@ -9,12 +9,11 @@ on a **Eclipse IDE for Java Developers 2023-06** without an internet connection.
 
 | Path | What it is | In git? |
 |------|-----------|---------|
-| `p2/automation-plugin/` | Automation Plugin update site (built by `mvn clean install`) | Yes |
+| `p2/automation-plugin/` | Automation Plugin update site — refreshed automatically by `mvn clean verify` | Yes |
 | `p2/pde/` | Eclipse Plug-in Development Environment mirror | **No** — generate once (see below) |
 | `p2/swtbot/` | SWTBot for Eclipse mirror (needed for development) | **No** — generate once (see below) |
 | `mirror-pom.xml` | Tycho mirror configuration that generates `p2/pde/` and `p2/swtbot/` | Yes |
 | `patch-p2-category.ps1` | Adds p2 category IUs so Install New Software shows items grouped | Yes |
-| `update-automation-plugin.cmd` | Refreshes `p2/automation-plugin/` after a new build | Yes |
 
 ---
 
@@ -102,12 +101,6 @@ The test suite uses SWTBot. Without it, Eclipse cannot resolve the test project.
 
 ## Keeping the Automation Plugin update site current
 
-After every `mvn clean install`, run the update script to refresh `p2/automation-plugin/`
-with the latest build:
-
-```
-cd com.example.automation.parent
-local-repo\update-automation-plugin.cmd
-```
-
-Then re-share or redeploy the `local-repo\p2\automation-plugin\` folder to colleagues.
+`p2/automation-plugin/` is refreshed automatically at the end of every `mvn clean verify`
+run — no manual step required. After a build, commit the updated files in `local-repo/p2/automation-plugin/`
+and re-share or redeploy the `local-repo/` folder to colleagues.

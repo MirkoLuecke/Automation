@@ -17,13 +17,15 @@ cd com.example.automation.parent
 mvn clean verify
 ```
 
-This produces the p2 update site at:
-`com.example.automation.parent/com.example.automation.site/target/repository`
+This builds the plugin and automatically copies the p2 update site to:
+`com.example.automation.parent/local-repo/p2/automation-plugin/`
+
+> **Note:** `local-repo/p2/automation-plugin/` is kept in sync with the build — it is a copy of `com.example.automation.site/target/repository` and is refreshed automatically on every `mvn clean verify`.
 
 ### 2. Install in Eclipse
 
 1. Open Eclipse and go to **Help → Install New Software…**
-2. Click **Add…**, then **Local…**, and browse to the `repository` folder above.
+2. Click **Add…**, then **Local…**, and browse to `com.example.automation.parent/local-repo/p2/automation-plugin/`.
 3. Select **Automation** from the feature list and click **Next → Finish**.
 4. Restart Eclipse when prompted.
 
