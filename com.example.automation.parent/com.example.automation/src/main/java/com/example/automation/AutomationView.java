@@ -100,10 +100,14 @@ public class AutomationView extends ViewPart {
         if (currentWorkflow == null) {
             workflowNameLabel.setText("(no workflows)");
             workflowDescLabel.setText("");
+            workflowDescLabel.setToolTipText(null);
         } else {
             workflowNameLabel.setText(currentWorkflow.getDisplayName());
             String desc = currentWorkflow.getDescription();
-            workflowDescLabel.setText(desc == null ? "" : desc);
+            if (desc == null) desc = "";
+            String displayed = desc.length() > 100 ? desc.substring(0, 97) + "…" : desc;
+            workflowDescLabel.setText(displayed);
+            workflowDescLabel.setToolTipText(desc.isEmpty() ? null : desc);
         }
         workflowNameLabel.getParent().layout();
     }

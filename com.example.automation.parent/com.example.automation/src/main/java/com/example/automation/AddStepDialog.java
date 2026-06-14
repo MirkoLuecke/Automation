@@ -85,16 +85,16 @@ public class AddStepDialog extends TitleAreaDialog {
             }
         });
 
-        viewer.getTable().setSortColumn(nameCol.getColumn());
-        viewer.getTable().setSortDirection(SWT.UP);
-        viewer.setComparator(makeComparator());
-
         nameCol.getColumn().addSelectionListener(SelectionListener.widgetSelectedAdapter(
             e -> onSortColumn(nameCol.getColumn(), 0)));
         descCol.getColumn().addSelectionListener(SelectionListener.widgetSelectedAdapter(
             e -> onSortColumn(descCol.getColumn(), 1)));
 
         viewer.setInput(registry.getAllActions());
+
+        viewer.getTable().setSortColumn(nameCol.getColumn());
+        viewer.getTable().setSortDirection(SWT.UP);
+        viewer.setComparator(makeComparator());
 
         viewer.addSelectionChangedListener(e ->
             getButton(OK).setEnabled(!viewer.getStructuredSelection().isEmpty()));
@@ -116,23 +116,24 @@ public class AddStepDialog extends TitleAreaDialog {
         viewer.getTable().setSortColumn(col);
         viewer.getTable().setSortDirection(sortDirection);
         viewer.setComparator(makeComparator());
+        viewer.refresh();
     }
 
     private ViewerComparator makeComparator() {
+        final int col = sortColumn;
+        final int dir = sortDirection;
         return new ViewerComparator() {
             @Override
             public int compare(Viewer v, Object o1, Object o2) {
                 IAction a1 = (IAction) o1;
                 IAction a2 = (IAction) o2;
-                String s1 = colIdx == 0 ? a1.getName()
+                String s1 = col == 0 ? a1.getName()
                     : (a1.getDescription() == null ? "" : a1.getDescription());
-                String s2 = colIdx == 0 ? a2.getName()
+                String s2 = col == 0 ? a2.getName()
                     : (a2.getDescription() == null ? "" : a2.getDescription());
                 int cmp = s1.compareToIgnoreCase(s2);
                 return dir == SWT.UP ? cmp : -cmp;
             }
-            final int colIdx = sortColumn;
-            final int dir    = sortDirection;
         };
     }
 
