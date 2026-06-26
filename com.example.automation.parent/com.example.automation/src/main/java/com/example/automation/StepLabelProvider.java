@@ -3,6 +3,7 @@ package com.example.automation;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.eclipse.jface.resource.JFaceResources;
 import org.eclipse.jface.viewers.ColumnLabelProvider;
 import org.eclipse.jface.viewers.ColumnViewer;
 import org.eclipse.jface.viewers.OwnerDrawLabelProvider;
@@ -102,8 +103,10 @@ public class StepLabelProvider {
     /**
      * Label provider for the Name column. Returns the step's custom name if set,
      * otherwise falls back to the action's display name, then to the raw action ID.
+     * Uses bold font when {@link Step#isBold()} is true.
      */
-    public static class Name extends ColumnLabelProvider {
+    public static class Name extends ColumnLabelProvider implements org.eclipse.jface.viewers.IFontProvider {
+
         @Override
         public String getText(Object element) {
             Step step = (Step) element;
@@ -111,6 +114,14 @@ public class StepLabelProvider {
                 return step.getName();
             IAction action = ActionRegistry.getInstance().getAction(step.getActionId());
             return action != null ? action.getName() : step.getActionId();
+        }
+
+        @Override
+        public org.eclipse.swt.graphics.Font getFont(Object element) {
+            Step step = (Step) element;
+            if (step.isBold())
+                return JFaceResources.getFontRegistry().getBold(JFaceResources.DEFAULT_FONT);
+            return null; // null = use viewer default font
         }
     }
 
