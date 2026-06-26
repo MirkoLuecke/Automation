@@ -91,8 +91,10 @@ public class DuplicateStepTest {
         String name1 = table.cell(1, 1);
 
         table.click(0, 1);
-        table.getTableItem(1).widget.getDisplay().syncExec(
-            () -> table.widget.select(0, 1));
+        table.widget.getDisplay().syncExec(() -> {
+            table.widget.setSelection(new int[]{0, 1});
+            table.widget.notifyListeners(org.eclipse.swt.SWT.Selection, new org.eclipse.swt.widgets.Event());
+        });
         bot.viewById("com.example.automation.view").bot()
             .toolbarButtonWithTooltip("Duplicate Step").click();
 
