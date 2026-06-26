@@ -6,6 +6,7 @@ import java.util.Map;
 import org.junit.Test;
 import com.example.automation.model.Step;
 import com.example.automation.model.StepStatus;
+import com.google.gson.Gson;
 
 public class StepTest {
 
@@ -58,5 +59,36 @@ public class StepTest {
         cfg.put("key", "val");
         step.setConfig(cfg);
         assertSame(cfg, step.getConfig());
+    }
+
+    @Test
+    public void bold_defaultsFalse() {
+        assertFalse(new Step("a").isBold());
+    }
+
+    @Test
+    public void bold_setterGetterRoundTrip() {
+        Step step = new Step("a");
+        step.setBold(true);
+        assertTrue(step.isBold());
+        step.setBold(false);
+        assertFalse(step.isBold());
+    }
+
+    @Test
+    public void bold_gsonRoundTrip_true() {
+        Step step = new Step("a");
+        step.setBold(true);
+        String json = new Gson().toJson(step);
+        Step loaded = new Gson().fromJson(json, Step.class);
+        assertTrue(loaded.isBold());
+    }
+
+    @Test
+    public void bold_gsonRoundTrip_missingFieldDefaultsFalse() {
+        // Simulates loading an old workflow JSON that has no "bold" field
+        String json = "{\"actionId\":\"a\"}";
+        Step loaded = new Gson().fromJson(json, Step.class);
+        assertFalse("missing bold field must default to false", loaded.isBold());
     }
 }

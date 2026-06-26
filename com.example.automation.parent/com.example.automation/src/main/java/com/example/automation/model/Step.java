@@ -12,6 +12,7 @@ public class Step {
 
     private String actionId;
     private String name;
+    private boolean bold;
     private Map<String, String> config = new HashMap<>();
 
     private transient StepStatus status = StepStatus.WHITE;
@@ -30,6 +31,10 @@ public class Step {
     /** @return the optional display name, or {@code null} if not set */
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+
+    /** @return whether this step should be displayed in bold */
+    public boolean isBold() { return bold; }
+    public void setBold(boolean bold) { this.bold = bold; }
 
     /** @return the mutable configuration map passed to the action on execution */
     public Map<String, String> getConfig() { return config; }
