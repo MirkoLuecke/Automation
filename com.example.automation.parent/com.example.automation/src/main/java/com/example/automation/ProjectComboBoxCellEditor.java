@@ -17,8 +17,8 @@ import org.eclipse.swt.widgets.Control;
 
 /**
  * Editable combo-box cell editor pre-populated with all Eclipse workspace
- * project names, sorted alphabetically. The user may also type a name that
- * is not in the list.
+ * project names, sorted alphabetically. The list is rebuilt on every focus
+ * event so it is never stale. The user may also type a name not in the list.
  */
 public class ProjectComboBoxCellEditor extends CellEditor {
 
@@ -31,13 +31,6 @@ public class ProjectComboBoxCellEditor extends CellEditor {
     @Override
     protected Control createControl(Composite parent) {
         combo = new Combo(parent, SWT.DROP_DOWN);
-        IProject[] projects = ResourcesPlugin.getWorkspace().getRoot().getProjects();
-        String[] names = Arrays.stream(projects)
-            .map(IProject::getName)
-            .sorted(Comparator.naturalOrder())
-            .toArray(String[]::new);
-        combo.setItems(names);
-
         combo.addFocusListener(new FocusAdapter() {
             @Override
             public void focusLost(FocusEvent e) {
@@ -54,6 +47,17 @@ public class ProjectComboBoxCellEditor extends CellEditor {
     }
 
     @Override
+    protected void doSetFocus() {
+        IProject[] projects = ResourcesPlugin.getWorkspace().getRoot().getProjects();
+        String[] names = Arrays.stream(projects)
+            .map(IProject::getName)
+            .sorted(Comparator.naturalOrder())
+            .toArray(String[]::new);
+        combo.setItems(names);
+        combo.setFocus();
+    }
+
+    @Override
     protected Object doGetValue() {
         return combo.getText();
     }
@@ -61,10 +65,5 @@ public class ProjectComboBoxCellEditor extends CellEditor {
     @Override
     protected void doSetValue(Object value) {
         combo.setText(value instanceof String s ? s : "");
-    }
-
-    @Override
-    protected void doSetFocus() {
-        combo.setFocus();
     }
 }

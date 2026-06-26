@@ -39,6 +39,7 @@ public class ProjectComboBoxCellEditorTest {
             Shell shell = new Shell(Display.getDefault(), SWT.NONE);
             shell.open();
             ProjectComboBoxCellEditor editor = new ProjectComboBoxCellEditor(shell);
+            editor.setFocus();
             found[0] = Arrays.asList(((Combo) editor.getControl()).getItems())
                              .contains(PROJECT_NAME);
             shell.dispose();
