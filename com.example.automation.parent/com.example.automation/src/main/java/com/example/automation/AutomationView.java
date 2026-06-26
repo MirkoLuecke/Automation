@@ -2,6 +2,7 @@ package com.example.automation;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -67,7 +68,7 @@ public class AutomationView extends ViewPart {
     private Workflow currentWorkflow;
 
     private ToolItem newWorkflowItem, editWorkflowItem, openWorkflowItem;
-    private ToolItem addStepItem, deleteStepItem, moveUpItem, moveDownItem;
+    private ToolItem addStepItem, deleteStepItem, moveUpItem, moveDownItem, duplicateStepItem;
     private ToolItem runItem, runSelectedItem, stopItem;
 
     private WorkflowRunner activeRunner;
@@ -143,6 +144,9 @@ public class AutomationView extends ViewPart {
         moveDownItem = makeButton(bar, "Move Step Down",
             Activator.getDefault().getImageRegistry().get(Activator.IMG_DOWN_NAV),
             SelectionListener.widgetSelectedAdapter(e -> onMoveDown()));
+        duplicateStepItem = makeButton(bar, "Duplicate Step",
+            shared.getImage(ISharedImages.IMG_TOOL_COPY),
+            SelectionListener.widgetSelectedAdapter(e -> onDuplicate()));
 
         new ToolItem(bar, SWT.SEPARATOR);
 
@@ -266,9 +270,10 @@ public class AutomationView extends ViewPart {
         boolean hasWorkflow = currentWorkflow != null;
         IStructuredSelection sel = viewer.getStructuredSelection();
         boolean hasStep = !sel.isEmpty();
-        int selCount    = sel.size();
-        int selIdx      = viewer.getTable().getSelectionIndex();
-        int stepCount   = hasWorkflow ? currentWorkflow.getSteps().size() : 0;
+        int[] selIndices = viewer.getTable().getSelectionIndices();
+        Arrays.sort(selIndices);
+        boolean contiguous = StepOperations.isContiguous(selIndices);
+        int stepCount = hasWorkflow ? currentWorkflow.getSteps().size() : 0;
         boolean running = activeRunner != null;
 
         newWorkflowItem.setEnabled(!running);
@@ -276,8 +281,11 @@ public class AutomationView extends ViewPart {
         openWorkflowItem.setEnabled(!running && !workflows.isEmpty());
         addStepItem.setEnabled(!running && hasWorkflow);
         deleteStepItem.setEnabled(!running && hasStep);
-        moveUpItem.setEnabled(!running && selCount == 1 && selIdx > 0);
-        moveDownItem.setEnabled(!running && selCount == 1 && selIdx < stepCount - 1);
+        moveUpItem.setEnabled(!running && contiguous
+            && selIndices.length > 0 && selIndices[0] > 0);
+        moveDownItem.setEnabled(!running && contiguous
+            && selIndices.length > 0 && selIndices[selIndices.length - 1] < stepCount - 1);
+        duplicateStepItem.setEnabled(!running && contiguous && selIndices.length > 0);
         runItem.setEnabled(!running && hasWorkflow && stepCount > 0);
         runSelectedItem.setEnabled(!running && hasStep);
         stopItem.setEnabled(running);
@@ -317,7 +325,22 @@ public class AutomationView extends ViewPart {
         if (currentWorkflow == null) return;
         AddStepDialog dialog = new AddStepDialog(getSite().getShell(), ActionRegistry.getInstance());
         if (dialog.open() == Window.OK) {
-            currentWorkflow.getSteps().add(dialog.getResult());
+            Step step = dialog.getResult();
+            com.example.automation.api.IAction action =
+                ActionRegistry.getInstance().getAction(step.getActionId());
+            if (action != null) {
+                String wsParent = StepOperations.workspaceParent();
+                if (wsParent != null) {
+                    for (String key : action.getDefaultConfig().keySet()) {
+                        String defVal = action.getDefaultConfig().get(key);
+                        if ((defVal == null || defVal.isBlank())
+                                && (StepOperations.isDirField(key) || StepOperations.isFileField(key))) {
+                            step.getConfig().put(key, wsParent);
+                        }
+                    }
+                }
+            }
+            currentWorkflow.getSteps().add(step);
             save();
             viewer.refresh();
             updateButtonStates();
@@ -334,23 +357,55 @@ public class AutomationView extends ViewPart {
     }
 
     private void onMoveUp() {
-        int idx = viewer.getTable().getSelectionIndex();
-        if (idx <= 0) return;
-        Collections.swap(currentWorkflow.getSteps(), idx, idx - 1);
+        List<Step> steps = currentWorkflow.getSteps();
+        int[] indices = viewer.getTable().getSelectionIndices();
+        Arrays.sort(indices);
+        if (!StepOperations.isContiguous(indices) || indices[0] <= 0) return;
+        List<Step> block = new ArrayList<>();
+        for (int i = indices.length - 1; i >= 0; i--) block.add(0, steps.remove(indices[i]));
+        int insertAt = indices[0] - 1;
+        steps.addAll(insertAt, block);
         save();
         viewer.refresh();
-        viewer.getTable().select(idx - 1);
+        int[] newSel = new int[indices.length];
+        for (int i = 0; i < indices.length; i++) newSel[i] = indices[i] - 1;
+        viewer.getTable().setSelection(newSel);
         updateButtonStates();
     }
 
     private void onMoveDown() {
         List<Step> steps = currentWorkflow.getSteps();
-        int idx = viewer.getTable().getSelectionIndex();
-        if (idx < 0 || idx >= steps.size() - 1) return;
-        Collections.swap(steps, idx, idx + 1);
+        int[] indices = viewer.getTable().getSelectionIndices();
+        Arrays.sort(indices);
+        if (!StepOperations.isContiguous(indices)
+                || indices[indices.length - 1] >= steps.size() - 1) return;
+        List<Step> block = new ArrayList<>();
+        for (int i = indices.length - 1; i >= 0; i--) block.add(0, steps.remove(indices[i]));
+        int insertAt = indices[0] + 1;
+        steps.addAll(insertAt, block);
         save();
         viewer.refresh();
-        viewer.getTable().select(idx + 1);
+        int[] newSel = new int[indices.length];
+        for (int i = 0; i < indices.length; i++) newSel[i] = indices[i] + 1;
+        viewer.getTable().setSelection(newSel);
+        updateButtonStates();
+    }
+
+    private void onDuplicate() {
+        if (currentWorkflow == null) return;
+        List<Step> steps = currentWorkflow.getSteps();
+        int[] indices = viewer.getTable().getSelectionIndices();
+        Arrays.sort(indices);
+        if (!StepOperations.isContiguous(indices)) return;
+        List<Step> copies = new ArrayList<>();
+        for (int idx : indices) copies.add(StepOperations.deepCopy(steps.get(idx)));
+        int insertAt = indices[indices.length - 1] + 1;
+        steps.addAll(insertAt, copies);
+        save();
+        viewer.refresh();
+        int[] newSel = new int[copies.size()];
+        for (int i = 0; i < copies.size(); i++) newSel[i] = insertAt + i;
+        viewer.getTable().setSelection(newSel);
         updateButtonStates();
     }
 
