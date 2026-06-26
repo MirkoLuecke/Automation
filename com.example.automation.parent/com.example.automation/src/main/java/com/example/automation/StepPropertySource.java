@@ -103,7 +103,7 @@ public class StepPropertySource implements IPropertySource {
                 }
             };
         }
-        if (isDirField(key)) {
+        if (StepOperations.isDirField(key)) {
             return new PropertyDescriptor(key, key) {
                 @Override
                 public org.eclipse.jface.viewers.CellEditor createPropertyEditor(Composite parent) {
@@ -111,7 +111,7 @@ public class StepPropertySource implements IPropertySource {
                 }
             };
         }
-        if (isFileField(key)) {
+        if (StepOperations.isFileField(key)) {
             return new PropertyDescriptor(key, key) {
                 @Override
                 public org.eclipse.jface.viewers.CellEditor createPropertyEditor(Composite parent) {
@@ -128,15 +128,6 @@ public class StepPropertySource implements IPropertySource {
             };
         }
         return new TextPropertyDescriptor(key, key);
-    }
-
-    private static boolean isFileField(String key) {
-        String lower = key.toLowerCase(java.util.Locale.ROOT);
-        return lower.endsWith("file") || lower.endsWith("path");
-    }
-
-    private static boolean isDirField(String key) {
-        return key.toLowerCase(java.util.Locale.ROOT).endsWith("dir");
     }
 
     private static boolean isMultiLineField(String actionId, String key) {
