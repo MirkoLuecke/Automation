@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.ui.views.properties.ComboBoxPropertyDescriptor;
 import org.eclipse.ui.views.properties.IPropertyDescriptor;
 import org.eclipse.ui.views.properties.TextPropertyDescriptor;
 import org.junit.Test;
@@ -41,10 +42,16 @@ public class StepPropertySourceTest {
         StepPropertySource s = src(step, reg, saved);
         IPropertyDescriptor[] descs = s.getPropertyDescriptors();
 
-        assertEquals(1, descs.length);
-        assertEquals("action", descs[0].getId());
+        // action + name + bold = 3 (no config keys for this action)
+        assertEquals(3, descs.length);
+        // Find action descriptor
+        IPropertyDescriptor actionDesc = null;
+        for (IPropertyDescriptor d : descs) {
+            if ("action".equals(d.getId())) { actionDesc = d; break; }
+        }
+        assertNotNull(actionDesc);
         assertFalse("action descriptor must not be a TextPropertyDescriptor",
-            descs[0] instanceof TextPropertyDescriptor);
+            actionDesc instanceof TextPropertyDescriptor);
         assertEquals("my.action", s.getPropertyValue("action"));
         assertFalse(saved[0]);
     }
@@ -97,8 +104,8 @@ public class StepPropertySourceTest {
 
         IPropertyDescriptor[] descs = src(step, reg, saved).getPropertyDescriptors();
 
-        // "action" + "foo"
-        assertEquals(2, descs.length);
+        // action + name + bold + "foo" = 4
+        assertEquals(4, descs.length);
         boolean foundFoo = false;
         for (IPropertyDescriptor d : descs) {
             if ("foo".equals(d.getId())) {
@@ -186,5 +193,141 @@ public class StepPropertySourceTest {
         assertNotNull("workingDir descriptor must exist", workingDirDesc);
         assertFalse("workingDir must not use TextPropertyDescriptor",
             workingDirDesc instanceof TextPropertyDescriptor);
+    }
+
+    @Test
+    public void nameProperty_isTextDescriptor_inStepCategory() {
+        Step step = new Step("my.action");
+        ActionRegistry reg = new ActionRegistry(List.of(stub("my.action", Map.of())));
+        boolean[] saved = {false};
+        StepPropertySource s = src(step, reg, saved);
+
+        IPropertyDescriptor nameDesc = null;
+        for (IPropertyDescriptor d : s.getPropertyDescriptors()) {
+            if ("name".equals(d.getId())) { nameDesc = d; break; }
+        }
+        assertNotNull("name property must exist", nameDesc);
+        assertTrue("name must use TextPropertyDescriptor", nameDesc instanceof TextPropertyDescriptor);
+    }
+
+    @Test
+    public void nameProperty_setAndGet() {
+        Step step = new Step("my.action");
+        ActionRegistry reg = new ActionRegistry(List.of(stub("my.action", Map.of())));
+        boolean[] saved = {false};
+        StepPropertySource s = src(step, reg, saved);
+
+        s.setPropertyValue("name", "My Custom Name");
+
+        assertEquals("My Custom Name", step.getName());
+        assertTrue(saved[0]);
+        assertEquals("My Custom Name", s.getPropertyValue("name"));
+    }
+
+    @Test
+    public void nameProperty_setBlank_setsNull() {
+        Step step = new Step("my.action");
+        step.setName("Existing");
+        ActionRegistry reg = new ActionRegistry(List.of(stub("my.action", Map.of())));
+        boolean[] saved = {false};
+        StepPropertySource s = src(step, reg, saved);
+
+        s.setPropertyValue("name", "   ");
+
+        assertNull("blank name must reset to null", step.getName());
+        assertTrue(saved[0]);
+    }
+
+    @Test
+    public void nameProperty_reset_setsNull() {
+        Step step = new Step("my.action");
+        step.setName("Custom");
+        ActionRegistry reg = new ActionRegistry(List.of(stub("my.action", Map.of())));
+        boolean[] saved = {false};
+        StepPropertySource s = src(step, reg, saved);
+
+        s.resetPropertyValue("name");
+
+        assertNull(step.getName());
+        assertTrue(saved[0]);
+    }
+
+    @Test
+    public void boldProperty_isComboDescriptor_defaultNo() {
+        Step step = new Step("my.action");
+        ActionRegistry reg = new ActionRegistry(List.of(stub("my.action", Map.of())));
+        boolean[] saved = {false};
+        StepPropertySource s = src(step, reg, saved);
+
+        IPropertyDescriptor boldDesc = null;
+        for (IPropertyDescriptor d : s.getPropertyDescriptors()) {
+            if ("bold".equals(d.getId())) { boldDesc = d; break; }
+        }
+        assertNotNull("bold property must exist", boldDesc);
+        assertTrue("bold must use ComboBoxPropertyDescriptor",
+            boldDesc instanceof ComboBoxPropertyDescriptor);
+        assertEquals(0, s.getPropertyValue("bold")); // 0 = No
+    }
+
+    @Test
+    public void boldProperty_setYes_setsTrue() {
+        Step step = new Step("my.action");
+        ActionRegistry reg = new ActionRegistry(List.of(stub("my.action", Map.of())));
+        boolean[] saved = {false};
+        StepPropertySource s = src(step, reg, saved);
+
+        s.setPropertyValue("bold", 1); // 1 = Yes
+
+        assertTrue(step.isBold());
+        assertTrue(saved[0]);
+        assertEquals(1, s.getPropertyValue("bold"));
+    }
+
+    @Test
+    public void boldProperty_setNo_setsFalse() {
+        Step step = new Step("my.action");
+        step.setBold(true);
+        ActionRegistry reg = new ActionRegistry(List.of(stub("my.action", Map.of())));
+        boolean[] saved = {false};
+        StepPropertySource s = src(step, reg, saved);
+
+        s.setPropertyValue("bold", 0); // 0 = No
+
+        assertFalse(step.isBold());
+        assertTrue(saved[0]);
+    }
+
+    @Test
+    public void boldProperty_reset_setsFalse() {
+        Step step = new Step("my.action");
+        step.setBold(true);
+        ActionRegistry reg = new ActionRegistry(List.of(stub("my.action", Map.of())));
+        boolean[] saved = {false};
+        StepPropertySource s = src(step, reg, saved);
+
+        s.resetPropertyValue("bold");
+
+        assertFalse(step.isBold());
+        assertTrue(saved[0]);
+    }
+
+    @Test
+    public void resetDirField_withBlankDefault_usesWorkspaceParent() {
+        // workingDir has a blank default — reset should give workspace parent
+        IAction action = stub("shell-command", Map.of("command", "", "workingDir", ""));
+        Step step = new Step("shell-command");
+        step.getConfig().put("workingDir", "/some/old/path");
+        ActionRegistry reg = new ActionRegistry(List.of(action));
+        boolean[] saved = {false};
+        StepPropertySource s = src(step, reg, saved);
+
+        s.resetPropertyValue("workingDir");
+
+        String wsParent = com.example.automation.StepOperations.workspaceParent();
+        if (wsParent != null) {
+            assertEquals("reset must apply workspace parent for blank-default dir field",
+                wsParent, step.getConfig().get("workingDir"));
+        }
+        assertTrue(saved[0]);
     }
 }

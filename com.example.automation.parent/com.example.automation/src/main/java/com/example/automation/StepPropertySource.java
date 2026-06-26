@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.ui.views.properties.ComboBoxPropertyDescriptor;
 import org.eclipse.ui.views.properties.IPropertyDescriptor;
 import org.eclipse.ui.views.properties.IPropertySource;
 import org.eclipse.ui.views.properties.PropertyDescriptor;
@@ -14,15 +15,11 @@ import com.example.automation.api.ActionRegistry;
 import com.example.automation.api.IAction;
 import com.example.automation.model.Step;
 
-/**
- * {@link org.eclipse.ui.views.properties.IPropertySource} implementation for
- * {@link com.example.automation.model.Step}. Exposes the action ID as a read-only
- * property and each config key as an editable text (or multi-line dialog) property.
- * Saving is delegated to a {@link Runnable} injected at construction time.
- */
 public class StepPropertySource implements IPropertySource {
 
     private static final String PROP_ACTION = "action";
+    private static final String PROP_NAME   = "name";
+    private static final String PROP_BOLD   = "bold";
 
     private final Step step;
     private final ActionRegistry registry;
@@ -37,9 +34,20 @@ public class StepPropertySource implements IPropertySource {
     @Override
     public IPropertyDescriptor[] getPropertyDescriptors() {
         List<IPropertyDescriptor> list = new ArrayList<>();
+
         PropertyDescriptor actionDesc = new PropertyDescriptor(PROP_ACTION, "Action");
         actionDesc.setCategory("Step");
         list.add(actionDesc);
+
+        TextPropertyDescriptor nameDesc = new TextPropertyDescriptor(PROP_NAME, "Name");
+        nameDesc.setCategory("Step");
+        list.add(nameDesc);
+
+        ComboBoxPropertyDescriptor boldDesc =
+            new ComboBoxPropertyDescriptor(PROP_BOLD, "Bold", new String[]{"No", "Yes"});
+        boldDesc.setCategory("Step");
+        list.add(boldDesc);
+
         for (String key : configKeys()) {
             PropertyDescriptor d = createConfigDescriptor(key);
             d.setCategory("Config");
@@ -50,16 +58,26 @@ public class StepPropertySource implements IPropertySource {
 
     @Override
     public Object getPropertyValue(Object id) {
-        if (PROP_ACTION.equals(id)) {
-            String aid = step.getActionId();
-            return aid != null ? aid : "";
-        }
+        if (PROP_ACTION.equals(id)) return step.getActionId() != null ? step.getActionId() : "";
+        if (PROP_NAME.equals(id))   return step.getName() != null ? step.getName() : "";
+        if (PROP_BOLD.equals(id))   return step.isBold() ? 1 : 0;
         return (id instanceof String key) ? step.getConfig().getOrDefault(key, "") : "";
     }
 
     @Override
     public void setPropertyValue(Object id, Object value) {
         if (PROP_ACTION.equals(id)) return;
+        if (PROP_NAME.equals(id)) {
+            String s = value instanceof String str ? str : "";
+            step.setName(s.isBlank() ? null : s);
+            save.run();
+            return;
+        }
+        if (PROP_BOLD.equals(id)) {
+            step.setBold(value instanceof Integer i && i == 1);
+            save.run();
+            return;
+        }
         if (!(id instanceof String key) || !(value instanceof String strVal)) return;
         step.getConfig().put(key, strVal);
         save.run();
@@ -68,10 +86,25 @@ public class StepPropertySource implements IPropertySource {
     @Override
     public void resetPropertyValue(Object id) {
         if (PROP_ACTION.equals(id)) return;
+        if (PROP_NAME.equals(id)) {
+            step.setName(null);
+            save.run();
+            return;
+        }
+        if (PROP_BOLD.equals(id)) {
+            step.setBold(false);
+            save.run();
+            return;
+        }
         if (!(id instanceof String key)) return;
         IAction action = registry.getAction(step.getActionId());
-        if (action == null) return; // action unknown: no canonical default, leave value unchanged
+        if (action == null) return;
         String def = action.getDefaultConfig().get(key);
+        if ((StepOperations.isDirField(key) || StepOperations.isFileField(key))
+                && (def == null || def.isBlank())) {
+            String wsParent = StepOperations.workspaceParent();
+            if (wsParent != null) def = wsParent;
+        }
         if (def != null) {
             step.getConfig().put(key, def);
             save.run();
@@ -81,6 +114,8 @@ public class StepPropertySource implements IPropertySource {
     @Override
     public boolean isPropertySet(Object id) {
         if (PROP_ACTION.equals(id)) return false;
+        if (PROP_NAME.equals(id))   return step.getName() != null && !step.getName().isBlank();
+        if (PROP_BOLD.equals(id))   return step.isBold();
         if (!(id instanceof String key)) return false;
         IAction action = registry.getAction(step.getActionId());
         if (action == null) return step.getConfig().containsKey(key);
@@ -90,9 +125,7 @@ public class StepPropertySource implements IPropertySource {
     }
 
     @Override
-    public Object getEditableValue() {
-        return null;
-    }
+    public Object getEditableValue() { return null; }
 
     private PropertyDescriptor createConfigDescriptor(String key) {
         if ("projectName".equals(key)) {
