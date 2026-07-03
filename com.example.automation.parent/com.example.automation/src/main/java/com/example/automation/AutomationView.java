@@ -83,7 +83,7 @@ public class AutomationView extends ViewPart {
         loadWorkflows();
         updateButtonStates();
         getSite().setSelectionProvider(viewer);
-        adapterFactory = new StepAdapterFactory(this::save);
+        adapterFactory = new StepAdapterFactory(() -> { save(); viewer.refresh(); });
         Platform.getAdapterManager().registerAdapters(adapterFactory, Step.class);
     }
 
