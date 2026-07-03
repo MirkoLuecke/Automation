@@ -1,5 +1,7 @@
 package com.example.automation;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import org.eclipse.jface.dialogs.TitleAreaDialog;
@@ -14,6 +16,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Shell;
 
+import com.example.automation.RemoteWorkflow;
 import com.example.automation.model.Workflow;
 
 /**
@@ -21,6 +24,36 @@ import com.example.automation.model.Workflow;
  * the user. Also displays the resolved workflow storage path in the title area.
  */
 public class WorkflowPickerDialog extends TitleAreaDialog {
+
+    // ── Entry types ───────────────────────────────────────────────────────────────
+
+    public enum SourceType { LOCAL, ARTIFACTORY }
+
+    public static class WorkflowEntry {
+        public final Workflow workflow;
+        public final SourceType source;
+        public final String rawJson;   // null for LOCAL
+        public final String filename;
+
+        public WorkflowEntry(Workflow workflow, SourceType source, String rawJson, String filename) {
+            this.workflow = workflow;
+            this.source = source;
+            this.rawJson = rawJson;
+            this.filename = filename;
+        }
+    }
+
+    public static List<WorkflowEntry> buildEntries(List<Workflow> local, List<RemoteWorkflow> remote) {
+        List<WorkflowEntry> result = new ArrayList<>();
+        for (Workflow wf : local)
+            result.add(new WorkflowEntry(wf, SourceType.LOCAL, null, wf.getWorkflowId() + ".json"));
+        for (RemoteWorkflow rw : remote)
+            result.add(new WorkflowEntry(rw.workflow, SourceType.ARTIFACTORY, rw.rawJson, rw.filename));
+        result.sort(Comparator
+            .comparing((WorkflowEntry e) -> e.workflow.getDisplayName() == null ? "" : e.workflow.getDisplayName())
+            .thenComparingInt(e -> e.source == SourceType.LOCAL ? 0 : 1));
+        return result;
+    }
 
     private final List<Workflow> workflows;
     private final String storagePath;
