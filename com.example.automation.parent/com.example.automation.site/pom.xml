@@ -27,7 +27,7 @@
             <goals><goal>run</goal></goals>
             <configuration>
               <target>
-                <delete dir="${project.basedir}/../local-repo/p2/automation-plugin"/>
+                <delete dir="${project.basedir}/../local-repo/p2/automation-plugin" failonerror="false"/>
                 <copy todir="${project.basedir}/../local-repo/p2/automation-plugin">
                   <fileset dir="${project.build.directory}/repository"/>
                 </copy>
