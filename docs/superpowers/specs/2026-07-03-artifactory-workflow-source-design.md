@@ -13,7 +13,7 @@ the local directory before opening it.
 
 | # | Feature | Files touched |
 |---|---------|---------------|
-| 1 | XOR-obfuscated Artifactory URL | `ArtifactoryConfig` (new) |
+| 1 | OS-based Artifactory URL derivation | `ArtifactoryConfig` (new) |
 | 2 | Artifactory REST client | `ArtifactoryClient` (new) |
 | 3 | Merged workflow list with Source column | `WorkflowPickerDialog` |
 | 4 | Download-on-open with overwrite prompt | `WorkflowPickerDialog` |
@@ -23,53 +23,69 @@ the local directory before opening it.
 
 ## URL Derivation
 
-The URL provided is the browser UI URL:
+The Artifactory folder URL is never stored as a plain string in source code.
+It is resolved at runtime using the following priority order:
 
-```
-https://artifactory.surv-xc-de.cap.saab.se/ui/repos/tree/General/abew-smr-sync/tools/eclipse/automation-workflows
-```
+| Priority | Source | Example |
+|----------|--------|---------|
+| 1 | `ARTIFACTORY_FOLDER_URL` environment variable | Full URL set by the user |
+| 2 | `USERDNSDOMAIN` environment variable (Windows) | `SOMETHING.COMPANYNAME.SE` → extracts `companyname` |
+| 3 | `InetAddress.getLocalHost().getCanonicalHostName()` | `host.companyname.de` → extracts `companyname` |
+| 4 | `hostname` OS command | `host.companyname.de` → extracts `companyname` |
 
-The two REST API URLs derived from it:
+For sources 2–4, the company name is the second-to-last component of the
+fully-qualified domain name, lowercased. It is inserted into the known URL
+template to produce the final folder URL.
 
-| Purpose | URL |
-|---------|-----|
-| Folder listing | `https://artifactory.surv-xc-de.cap.saab.se/artifactory/api/storage/abew-smr-sync/tools/eclipse/automation-workflows` |
-| File download | `https://artifactory.surv-xc-de.cap.saab.se/artifactory/abew-smr-sync/tools/eclipse/automation-workflows/{filename}` |
+If none of the sources yields a usable value (e.g. outside the company
+network), `folderUrl()` returns `null` and the dialog shows a warning with
+instructions to set `ARTIFACTORY_FOLDER_URL`.
 
-Only the REST API base (`https://artifactory.surv-xc-de.cap.saab.se/artifactory`) and
-the repository path (`abew-smr-sync/tools/eclipse/automation-workflows`) need to be
-stored — the two endpoint patterns are assembled at runtime.
+The two REST API URLs assembled at runtime:
+
+| Purpose | Pattern |
+|---------|---------|
+| Folder listing | `<base>/artifactory/api/storage/<repo-path>` |
+| File download | `<base>/artifactory/<repo-path>/{filename}` |
 
 ---
 
 ## Feature Specifications
 
-### 1. URL Obfuscation — `ArtifactoryConfig`
-
-The full folder URL is stored as a `byte[]` literal, XOR-encrypted with a
-separate hard-coded `byte[]` key. Neither the URL nor the key appears as a
-readable string in source or in the compiled class file (no `String` literals).
+### 1. URL Derivation — `ArtifactoryConfig`
 
 ```java
-final class ArtifactoryConfig {
-    private static final byte[] KEY = { /* key bytes */ };
-    private static final byte[] ENC = { /* encrypted URL bytes */ };
+public final class ArtifactoryConfig {
 
-    static String folderUrl() {
-        byte[] out = new byte[ENC.length];
-        for (int i = 0; i < ENC.length; i++)
-            out[i] = (byte) (ENC[i] ^ KEY[i % KEY.length]);
-        return new String(out, StandardCharsets.UTF_8);
+    static final String ENV_FOLDER_URL = "ARTIFACTORY_FOLDER_URL";
+
+    public static String folderUrl() {
+        String direct = System.getenv(ENV_FOLDER_URL);
+        if (direct != null && !direct.isBlank()) return direct;
+        String companyName = extractCompanyName();
+        return companyName != null ? buildFolderUrl(companyName) : null;
+    }
+
+    public static String listingUrl() {
+        String folder = folderUrl();
+        return folder != null ? buildListingUrl(folder) : null;
+    }
+
+    static String buildFolderUrl(String companyName) { /* assembles folder URL */ }
+    static String buildListingUrl(String folderUrl)  { /* inserts /api/storage */ }
+
+    static String extractCompanyName() {
+        // Tries USERDNSDOMAIN, then InetAddress, then hostname command
+    }
+
+    static String companyNameFrom(String fqdn) {
+        // Returns second-to-last dot-separated component, lowercased
     }
 }
 ```
 
-`folderUrl()` returns the plain folder URL:
-`https://artifactory.surv-xc-de.cap.saab.se/artifactory/abew-smr-sync/tools/eclipse/automation-workflows`
-
-The listing URL is `folderUrl()` prefixed with
-`https://artifactory.surv-xc-de.cap.saab.se/artifactory/api/storage/` + the
-repository-relative path extracted from `folderUrl()`.
+`folderUrl()` returns `null` when the company name cannot be determined.
+Callers must handle null.
 
 ---
 
@@ -89,7 +105,12 @@ connection.
 
 **Timeouts:** 5 s connect, 10 s read.
 
-#### `listWorkflows()` → `List<ArtifactoryWorkflowEntry>`
+**URL injection:** `listingUrl` and `folderUrl` are resolved once at
+construction time and stored as fields. A 3-argument test constructor accepts
+a `Fetcher` and supplies fixed dummy URLs so tests are not affected by OS
+hostname resolution.
+
+#### `listWorkflows()` → `List<RemoteWorkflow>`
 
 `GET <listingUrl>` (Artifactory storage API).
 
@@ -106,7 +127,7 @@ Expected response shape:
 Filters to entries where `folder == false` and `uri` ends with `.json`. For
 each, downloads the file to read its `displayName` and `description` fields
 (same Gson model as local workflows). Returns a list of
-`ArtifactoryWorkflowEntry(filename, displayName, description, rawJson)`.
+`RemoteWorkflow(filename, workflow, rawJson)`.
 
 #### `downloadWorkflow(filename)` → `String` (raw JSON)
 
@@ -116,6 +137,7 @@ each, downloads the file to read its `displayName` and `description` fields
 
 | HTTP status / exception | `ArtifactoryException` message |
 |------------------------|-------------------------------|
+| `listingUrl == null` | `"Artifactory URL could not be determined … Set ARTIFACTORY_FOLDER_URL …"` |
 | 401 / 403 | `"Artifactory authentication failed (HTTP <status>)"` |
 | other 4xx / 5xx | `"Artifactory returned HTTP <status>"` |
 | `IOException` | `"Could not reach Artifactory: <exception message>"` |
@@ -127,9 +149,14 @@ each, downloads the file to read its `displayName` and `description` fields
 **New types:**
 
 ```java
-enum SourceType { LOCAL, ARTIFACTORY }
+public enum SourceType { LOCAL, ARTIFACTORY }
 
-record WorkflowEntry(Workflow workflow, SourceType source, String rawJson /* null for LOCAL */) {}
+public static class WorkflowEntry {
+    public final Workflow workflow;
+    public final SourceType source;
+    public final String rawJson;   // null for LOCAL
+    public final String filename;
+}
 ```
 
 **Column layout** (updated):
@@ -179,7 +206,8 @@ If the user selects a `LOCAL` entry, behaviour is unchanged from today.
 
 | Situation | Behaviour |
 |-----------|-----------|
-| Env vars missing | Warning label above table |
+| URL cannot be determined (not on company network) | Warning label with hint to set `ARTIFACTORY_FOLDER_URL` |
+| Credentials env vars missing | Warning label above table |
 | Connection timeout / unreachable | Warning label above table |
 | HTTP 401 / 403 | Warning label above table |
 | Other HTTP error | Warning label above table |
@@ -195,30 +223,47 @@ unit tests; no SWTBot integration tests are added for this feature.
 
 ### `ArtifactoryConfigTest`
 
-- `decrypt_roundtrip`: encrypts a known string with the key, decrypts it, asserts equality. Does not assert the URL value.
+| Test | Covers |
+|------|--------|
+| `buildFolderUrl_returnsHttpsUrl` | Built URL starts with `https://` |
+| `buildFolderUrl_containsCompanyName` | Company name appears in built URL |
+| `buildListingUrl_containsApiStorage` | `/api/storage/` inserted correctly |
+| `buildListingUrl_startsWithHttps` | Listing URL is valid https |
+| `companyNameFrom_extractsSecondToLast` | `host.company.se` → `company` |
+| `companyNameFrom_lowercasesResult` | `SOMETHING.COMPANY.SE` → `company` |
+| `companyNameFrom_returnsNullForSinglePart` | `hostname` → `null` |
+| `companyNameFrom_returnsNullForNull` | `null` → `null` |
+| `companyNameFrom_handlesSubdomains` | `sub.domain.company.se` → `company` |
 
 ### `ArtifactoryClientTest`
 
-Uses a test-injectable `ConnectionFactory` interface so `HttpURLConnection` can
-be replaced in tests.
+Uses a test-injectable `Fetcher` interface so `HttpURLConnection` can
+be replaced in tests. The 3-argument constructor supplies dummy URLs.
 
 | Test | Covers |
 |------|--------|
-| `listWorkflows_parsesChildrenArray` | Valid folder listing JSON → correct entry list |
+| `listWorkflows_parsesJsonFiles` | Valid folder listing JSON → correct entry list |
 | `listWorkflows_filtersOutFolders` | `folder: true` entries excluded |
 | `listWorkflows_filtersOutNonJson` | Non-`.json` entries excluded |
-| `listWorkflows_throwsOnMissingEnvVars` | Blank `ARTIFACTORY_USER` → `ArtifactoryException` |
+| `listWorkflows_throwsOnMissingUser` | Blank `ARTIFACTORY_USER` → `ArtifactoryException` |
+| `listWorkflows_throwsOnMissingApiKey` | Blank `ARTIFACTORY_API_KEY` → `ArtifactoryException` |
 | `listWorkflows_throwsOn401` | HTTP 401 → `ArtifactoryException` with auth message |
+| `listWorkflows_401_messageContainsAuthFailed` | Message contains "authentication failed" |
 | `listWorkflows_throwsOn500` | HTTP 500 → `ArtifactoryException` with status |
-| `downloadWorkflow_returnsBody` | 200 response → raw JSON string returned |
+| `listWorkflows_500_messageContainsHttpStatus` | Message contains "500" |
+| `listWorkflows_throwsOnIoException` | `IOException` → `ArtifactoryException` |
+| `listWorkflows_ioException_messageContainsReason` | Message contains original reason |
+| `downloadWorkflow_returnsRawJson` | 200 response → raw JSON string returned |
 
-### `WorkflowPickerDialogTest` (extend existing)
+### `WorkflowPickerDialogMergeTest`
 
 | Test | Covers |
 |------|--------|
-| `mergedList_containsBothSources` | Local + remote entries combined; source labels correct |
-| `mergedList_localFirstOnSameName` | Same filename → local entry sorts before Artifactory |
-| `artifactoryFailure_showsOnlyLocal` | Exception from client → only local entries present |
+| `buildEntries_containsBothSources` | Local + remote entries combined; source labels correct |
+| `buildEntries_sourceLabelsCorrect` | LOCAL has null rawJson; ARTIFACTORY has non-null rawJson |
+| `buildEntries_localFirstForSameName` | Same display name → local entry sorts before Artifactory |
+| `buildEntries_emptyRemote_onlyLocal` | Empty remote → only local entries |
+| `buildEntries_emptyLocal_onlyRemote` | Empty local → only Artifactory entries |
 
 ---
 
@@ -226,10 +271,11 @@ be replaced in tests.
 
 | File | Change type |
 |------|-------------|
-| `ArtifactoryConfig.java` (new) | XOR-obfuscated URL storage |
-| `ArtifactoryClient.java` (new) | Artifactory REST client |
+| `ArtifactoryConfig.java` (new) | OS-based URL derivation; `ARTIFACTORY_FOLDER_URL` override |
+| `ArtifactoryClient.java` (new) | Artifactory REST client with injectable `Fetcher` |
 | `ArtifactoryException.java` (new) | Typed exception |
 | `WorkflowPickerDialog.java` | Source column, merged list, download-on-open |
-| `ArtifactoryConfigTest.java` (new) | Decrypt round-trip test |
-| `ArtifactoryClientTest.java` (new) | REST client unit tests |
-| `WorkflowPickerDialogTest.java` (new/extend) | Merge logic unit tests |
+| `AutomationView.java` | `onOpenWorkflow()` passes `File storageDir` to dialog |
+| `ArtifactoryConfigTest.java` (new) | URL builder and company-name extraction tests |
+| `ArtifactoryClientTest.java` (new) | REST client unit tests via injectable `Fetcher` |
+| `WorkflowPickerDialogMergeTest.java` (new) | `buildEntries()` merge logic unit tests |

@@ -59,7 +59,7 @@ public class ArtifactoryClient {
 
     public List<RemoteWorkflow> listWorkflows() throws ArtifactoryException {
         if (listingUrl == null)
-            throw new ArtifactoryException("Artifactory URL could not be determined");
+            throw new ArtifactoryException(urlNotDetermined());
         String auth = basicAuth();
         HttpResponse resp = doFetch(listingUrl, auth);
         checkStatus(resp.status);
@@ -82,7 +82,7 @@ public class ArtifactoryClient {
 
     public String downloadWorkflow(String filename) throws ArtifactoryException {
         if (folderUrl == null)
-            throw new ArtifactoryException("Artifactory URL could not be determined");
+            throw new ArtifactoryException(urlNotDetermined());
         String auth = basicAuth();
         HttpResponse resp = doFetch(folderUrl + "/" + filename, auth);
         checkStatus(resp.status);
@@ -111,6 +111,13 @@ public class ArtifactoryClient {
             throw new ArtifactoryException("Artifactory authentication failed (HTTP " + status + ")");
         if (status >= 400)
             throw new ArtifactoryException("Artifactory returned HTTP " + status);
+    }
+
+    private static String urlNotDetermined() {
+        return "Artifactory URL could not be determined from the OS hostname. "
+             + "Set the " + ArtifactoryConfig.ENV_FOLDER_URL + " environment variable "
+             + "to the Artifactory folder URL containing the workflow JSON files "
+             + "(e.g. https://artifactory.yourcompany.com/artifactory/repo/path/to/workflows).";
     }
 
     private static HttpResponse httpFetch(String urlStr, String authHeader) throws IOException {
