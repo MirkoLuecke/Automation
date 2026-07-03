@@ -230,12 +230,13 @@ public class AutomationView extends ViewPart {
     }
 
     private void onOpenWorkflow() {
-        String storagePath = "(unknown)";
-        try { storagePath = resolvedStorageDir().getAbsolutePath(); } catch (Exception e) {}
+        File storageDir = null;
+        try { storageDir = resolvedStorageDir(); } catch (Exception e) {}
+        if (storageDir == null) storageDir = new File(System.getProperty("user.home"));
         try { workflows = repository().list(); } catch (Exception e) {
             Platform.getLog(getClass()).error("Failed to reload workflows", e);
         }
-        WorkflowPickerDialog dialog = new WorkflowPickerDialog(getSite().getShell(), workflows, storagePath);
+        WorkflowPickerDialog dialog = new WorkflowPickerDialog(getSite().getShell(), workflows, storageDir);
         if (dialog.open() == Window.OK) {
             currentWorkflow = dialog.getResult();
             viewer.setInput(currentWorkflow.getSteps());

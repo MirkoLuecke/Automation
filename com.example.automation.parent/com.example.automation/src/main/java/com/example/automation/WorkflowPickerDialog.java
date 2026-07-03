@@ -1,9 +1,15 @@
 package com.example.automation;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.dialogs.TitleAreaDialog;
 import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.ColumnLabelProvider;
@@ -14,18 +20,19 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 
-import com.example.automation.RemoteWorkflow;
 import com.example.automation.model.Workflow;
 
 /**
- * Modal dialog that lists all available workflows and returns the one selected by
- * the user. Also displays the resolved workflow storage path in the title area.
+ * Modal dialog that lists all available workflows (local and Artifactory) and
+ * returns the workflow selected by the user. Selecting an Artifactory workflow
+ * downloads and saves it to the local storage directory first.
  */
 public class WorkflowPickerDialog extends TitleAreaDialog {
 
-    // ── Entry types ───────────────────────────────────────────────────────────────
+    // ── Entry types ───────────────────────────────────────────────────────────
 
     public enum SourceType { LOCAL, ARTIFACTORY }
 
@@ -55,22 +62,25 @@ public class WorkflowPickerDialog extends TitleAreaDialog {
         return result;
     }
 
-    private final List<Workflow> workflows;
-    private final String storagePath;
+    // ── Fields ────────────────────────────────────────────────────────────────
+
+    private final List<Workflow> localWorkflows;
+    private final File storageDir;
     private TableViewer viewer;
+    private Label warningLabel;
     private Workflow result;
 
-    public WorkflowPickerDialog(Shell parent, List<Workflow> workflows, String storagePath) {
+    public WorkflowPickerDialog(Shell parent, List<Workflow> localWorkflows, File storageDir) {
         super(parent);
-        this.workflows = workflows;
-        this.storagePath = storagePath;
+        this.localWorkflows = localWorkflows;
+        this.storageDir = storageDir;
     }
 
     @Override
     public void create() {
         super.create();
         setTitle("Open Workflow");
-        setMessage("Workflows are loaded from: " + storagePath);
+        setMessage("Local: " + storageDir.getAbsolutePath());
         getButton(OK).setEnabled(false);
     }
 
@@ -86,6 +96,15 @@ public class WorkflowPickerDialog extends TitleAreaDialog {
     @Override
     protected Control createDialogArea(Composite parent) {
         Composite area = (Composite) super.createDialogArea(parent);
+
+        // Warning label — hidden until an Artifactory error occurs
+        warningLabel = new Label(area, SWT.WRAP);
+        warningLabel.setBackground(area.getDisplay().getSystemColor(SWT.COLOR_YELLOW));
+        GridData warnGd = new GridData(SWT.FILL, SWT.TOP, true, false);
+        warnGd.exclude = true;
+        warningLabel.setLayoutData(warnGd);
+        warningLabel.setVisible(false);
+
         viewer = new TableViewer(area, SWT.FULL_SELECTION | SWT.BORDER | SWT.SINGLE);
         viewer.getTable().setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
         viewer.getTable().setHeaderVisible(true);
@@ -97,25 +116,42 @@ public class WorkflowPickerDialog extends TitleAreaDialog {
         nameCol.getColumn().setWidth(180);
         nameCol.setLabelProvider(new ColumnLabelProvider() {
             @Override public String getText(Object element) {
-                return ((Workflow) element).getDisplayName();
+                Workflow wf = ((WorkflowEntry) element).workflow;
+                return wf == null ? "" : (wf.getDisplayName() == null ? "" : wf.getDisplayName());
             }
         });
 
         TableViewerColumn descCol = new TableViewerColumn(viewer, SWT.NONE);
         descCol.getColumn().setText("Description");
-        descCol.getColumn().setWidth(250);
+        descCol.getColumn().setWidth(220);
         descCol.setLabelProvider(new ColumnLabelProvider() {
             @Override public String getText(Object element) {
-                String desc = ((Workflow) element).getDescription();
-                return desc == null ? "" : desc;
+                Workflow wf = ((WorkflowEntry) element).workflow;
+                if (wf == null || wf.getDescription() == null) return "";
+                return wf.getDescription();
             }
         });
 
-        viewer.setInput(workflows);
+        TableViewerColumn sourceCol = new TableViewerColumn(viewer, SWT.NONE);
+        sourceCol.getColumn().setText("Source");
+        sourceCol.getColumn().setWidth(100);
+        sourceCol.setLabelProvider(new ColumnLabelProvider() {
+            @Override public String getText(Object element) {
+                return ((WorkflowEntry) element).source == SourceType.LOCAL ? "Local" : "Artifactory";
+            }
+        });
+
+        // Fetch Artifactory entries and populate the table
+        List<RemoteWorkflow> remote = Collections.emptyList();
+        try {
+            remote = new ArtifactoryClient().listWorkflows();
+        } catch (ArtifactoryException e) {
+            showWarning(e.getMessage());
+        }
+        viewer.setInput(buildEntries(localWorkflows, remote));
 
         viewer.addSelectionChangedListener(e ->
             getButton(OK).setEnabled(!viewer.getStructuredSelection().isEmpty()));
-
         viewer.addDoubleClickListener(e -> {
             if (!viewer.getStructuredSelection().isEmpty()) okPressed();
         });
@@ -125,14 +161,50 @@ public class WorkflowPickerDialog extends TitleAreaDialog {
 
     @Override
     protected void okPressed() {
-        result = (Workflow) ((IStructuredSelection) viewer.getSelection()).getFirstElement();
+        WorkflowEntry entry = (WorkflowEntry)
+            ((IStructuredSelection) viewer.getSelection()).getFirstElement();
+        if (entry == null) return;
+
+        if (entry.source == SourceType.ARTIFACTORY) {
+            if (!downloadAndSave(entry)) return;  // abort; dialog stays open
+        }
+
+        result = entry.workflow;
         super.okPressed();
     }
 
-    /**
-     * Returns the workflow selected by the user.
-     *
-     * @return the selected workflow, or {@code null} if the dialog was cancelled
-     */
+    /** @return the workflow selected by the user, or {@code null} if cancelled. */
     public Workflow getResult() { return result; }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    private boolean downloadAndSave(WorkflowEntry entry) {
+        File target = new File(storageDir, entry.filename);
+        if (target.exists()) {
+            boolean overwrite = MessageDialog.openQuestion(getShell(),
+                "Overwrite existing workflow?",
+                "A workflow named '" + entry.workflow.getDisplayName()
+                    + "' already exists locally. Overwrite?");
+            if (!overwrite) return false;
+        }
+        try {
+            storageDir.mkdirs();
+            try (FileWriter fw = new FileWriter(target, StandardCharsets.UTF_8)) {
+                fw.write(entry.rawJson);
+            }
+        } catch (IOException e) {
+            MessageDialog.openError(getShell(), "Download failed",
+                "Failed to save workflow to local directory: " + e.getMessage());
+            return false;
+        }
+        return true;
+    }
+
+    private void showWarning(String message) {
+        GridData gd = (GridData) warningLabel.getLayoutData();
+        gd.exclude = false;
+        warningLabel.setVisible(true);
+        warningLabel.setText("⚠ " + message);
+        warningLabel.getParent().layout(true, true);
+    }
 }
