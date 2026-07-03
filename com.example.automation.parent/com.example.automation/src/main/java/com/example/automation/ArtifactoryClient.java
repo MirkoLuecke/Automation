@@ -15,10 +15,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.example.automation.model.Workflow;
 
-/**
- * Fetches workflow listings and content from a JFrog Artifactory generic repository
- * using the Artifactory Storage REST API.
- */
 public class ArtifactoryClient {
 
     @FunctionalInterface
@@ -35,25 +31,36 @@ public class ArtifactoryClient {
     private final String user;
     private final String apiKey;
     private final Fetcher fetcher;
+    private final String listingUrl;
+    private final String folderUrl;
     private final Gson gson = new Gson();
 
-    /** Production constructor — reads credentials from environment variables. */
-    public ArtifactoryClient() {
+    ArtifactoryClient() {
         this(System.getenv("ARTIFACTORY_USER"),
              System.getenv("ARTIFACTORY_API_KEY"),
-             ArtifactoryClient::httpFetch);
+             ArtifactoryClient::httpFetch,
+             ArtifactoryConfig.listingUrl(),
+             ArtifactoryConfig.folderUrl());
     }
 
-    /** Test constructor — injects credentials and a fake fetcher. */
     public ArtifactoryClient(String user, String apiKey, Fetcher fetcher) {
+        this(user, apiKey, fetcher,
+             "https://test.local/artifactory/api/storage/repo/path",
+             "https://test.local/artifactory/repo/path");
+    }
+
+    ArtifactoryClient(String user, String apiKey, Fetcher fetcher, String listingUrl, String folderUrl) {
         this.user = user == null ? "" : user;
         this.apiKey = apiKey == null ? "" : apiKey;
         this.fetcher = fetcher;
+        this.listingUrl = listingUrl;
+        this.folderUrl = folderUrl;
     }
 
     public List<RemoteWorkflow> listWorkflows() throws ArtifactoryException {
+        if (listingUrl == null)
+            throw new ArtifactoryException("Artifactory URL could not be determined");
         String auth = basicAuth();
-        String listingUrl = ArtifactoryConfig.listingUrl();
         HttpResponse resp = doFetch(listingUrl, auth);
         checkStatus(resp.status);
 
@@ -66,7 +73,6 @@ public class ArtifactoryClient {
             String uri = child.get("uri").getAsString();
             String filename = uri.startsWith("/") ? uri.substring(1) : uri;
             if (!filename.endsWith(".json")) continue;
-
             String raw = downloadWorkflow(filename);
             Workflow wf = gson.fromJson(raw, Workflow.class);
             result.add(new RemoteWorkflow(filename, wf, raw));
@@ -75,8 +81,10 @@ public class ArtifactoryClient {
     }
 
     public String downloadWorkflow(String filename) throws ArtifactoryException {
-        String url = ArtifactoryConfig.folderUrl() + "/" + filename;
-        HttpResponse resp = doFetch(url, basicAuth());
+        if (folderUrl == null)
+            throw new ArtifactoryException("Artifactory URL could not be determined");
+        String auth = basicAuth();
+        HttpResponse resp = doFetch(folderUrl + "/" + filename, auth);
         checkStatus(resp.status);
         return resp.body;
     }
