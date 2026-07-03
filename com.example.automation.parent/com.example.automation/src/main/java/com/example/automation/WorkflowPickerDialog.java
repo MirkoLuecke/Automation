@@ -24,6 +24,7 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 
 import com.example.automation.model.Workflow;
+import com.example.automation.persistence.WorkflowRepository;
 
 /**
  * Modal dialog that lists all available workflows (local and Artifactory) and
@@ -167,9 +168,10 @@ public class WorkflowPickerDialog extends TitleAreaDialog {
 
         if (entry.source == SourceType.ARTIFACTORY) {
             if (!downloadAndSave(entry)) return;  // abort; dialog stays open
+            result = loadFromDisk(entry);
+        } else {
+            result = entry.workflow;
         }
-
-        result = entry.workflow;
         super.okPressed();
     }
 
@@ -198,6 +200,18 @@ public class WorkflowPickerDialog extends TitleAreaDialog {
             return false;
         }
         return true;
+    }
+
+    private Workflow loadFromDisk(WorkflowEntry entry) {
+        try {
+            List<Workflow> updated = new WorkflowRepository(storageDir).list();
+            return updated.stream()
+                .filter(w -> entry.filename.equals(w.getWorkflowId() + ".json"))
+                .findFirst()
+                .orElse(entry.workflow);
+        } catch (Exception e) {
+            return entry.workflow;
+        }
     }
 
     private void showWarning(String message) {
