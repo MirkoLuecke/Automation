@@ -128,6 +128,15 @@ public class StepPropertySource implements IPropertySource {
     public Object getEditableValue() { return null; }
 
     private PropertyDescriptor createConfigDescriptor(String key) {
+        if ("git-checkout".equals(step.getActionId()) && "branch".equals(key)) {
+            return new PropertyDescriptor(key, key) {
+                @Override
+                public org.eclipse.jface.viewers.CellEditor createPropertyEditor(Composite parent) {
+                    return new GitBranchComboEditor(parent,
+                        () -> step.getConfig().get("repoDir"));
+                }
+            };
+        }
         if ("projectName".equals(key)) {
             return new PropertyDescriptor(key, key) {
                 @Override
