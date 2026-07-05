@@ -25,8 +25,8 @@ public class GitBranchComboEditor extends CellEditor {
     private Combo combo;
 
     public GitBranchComboEditor(Composite parent, Supplier<String> repoDirSupplier) {
-        super(parent);
         this.repoDirSupplier = repoDirSupplier;
+        create(parent);
     }
 
     @Override
