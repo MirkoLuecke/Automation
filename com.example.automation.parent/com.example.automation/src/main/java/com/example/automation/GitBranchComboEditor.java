@@ -50,6 +50,7 @@ public class GitBranchComboEditor extends CellEditor {
 
     @Override
     protected void doSetFocus() {
+        // Repopulates to pick up new branches since createControl(); accepts two git calls per activation.
         populateItems();
         combo.setFocus();
     }
@@ -74,7 +75,7 @@ public class GitBranchComboEditor extends CellEditor {
 
     private List<String> fetchBranches() {
         String repoDir = resolveRepoDir();
-        if (repoDir == null) return Arrays.asList("(configure repoDir first)");
+        if (repoDir == null) return List.of("(configure repoDir first)");
         try {
             Process proc = new ProcessBuilder("git", "branch", "-r")
                 .directory(new File(repoDir))
@@ -82,9 +83,9 @@ public class GitBranchComboEditor extends CellEditor {
             String output = new String(proc.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
             proc.waitFor();
             List<String> branches = parseRemoteBranches(output);
-            return branches.isEmpty() ? Arrays.asList("(no remote branches found)") : branches;
+            return branches.isEmpty() ? List.of("(no remote branches found)") : branches;
         } catch (Exception e) {
-            return Arrays.asList("(no remote branches found)");
+            return List.of("(no remote branches found)");
         }
     }
 
@@ -93,6 +94,7 @@ public class GitBranchComboEditor extends CellEditor {
         if (raw == null || raw.isBlank()) return null;
         try {
             IStringVariableManager mgr = VariablesPlugin.getDefault().getStringVariableManager();
+            // false = leave undefined variables as literals; they will fail the git call and show the not-found placeholder
             String resolved = mgr.performStringSubstitution(raw, false);
             return resolved.isBlank() ? null : resolved;
         } catch (Exception e) {
