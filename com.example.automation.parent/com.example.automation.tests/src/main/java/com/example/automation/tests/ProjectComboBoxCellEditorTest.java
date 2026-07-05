@@ -74,4 +74,35 @@ public class ProjectComboBoxCellEditorTest {
         });
         assertEquals("custom-text-not-in-list", result[0]);
     }
+
+    @Test
+    public void comboIsPopulatedWithoutExplicitSetFocus() {
+        boolean[] found = {false};
+        Display.getDefault().syncExec(() -> {
+            Shell shell = new Shell(Display.getDefault(), SWT.NONE);
+            shell.open();
+            ProjectComboBoxCellEditor editor = new ProjectComboBoxCellEditor(shell);
+            // No setFocus() call — simulates Properties view creating the editor
+            // without transferring focus (e.g. when the editor is just created).
+            found[0] = Arrays.asList(((Combo) editor.getControl()).getItems())
+                             .contains(PROJECT_NAME);
+            shell.dispose();
+        });
+        assertTrue("Combo must list projects even without setFocus()", found[0]);
+    }
+
+    @Test
+    public void setValueThenSetFocus_preservesCurrentValue() {
+        String[] result = {null};
+        Display.getDefault().syncExec(() -> {
+            Shell shell = new Shell(Display.getDefault(), SWT.NONE);
+            shell.open();
+            ProjectComboBoxCellEditor editor = new ProjectComboBoxCellEditor(shell);
+            editor.setValue(PROJECT_NAME);
+            editor.setFocus(); // Properties view calls setValue() then setFocus()
+            result[0] = (String) editor.getValue();
+            shell.dispose();
+        });
+        assertEquals("setValue() value must survive setFocus()", PROJECT_NAME, result[0]);
+    }
 }

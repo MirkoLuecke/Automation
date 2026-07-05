@@ -31,6 +31,7 @@ public class ProjectComboBoxCellEditor extends CellEditor {
     @Override
     protected Control createControl(Composite parent) {
         combo = new Combo(parent, SWT.DROP_DOWN);
+        populateItems();
         combo.addFocusListener(new FocusAdapter() {
             @Override
             public void focusLost(FocusEvent e) {
@@ -48,13 +49,19 @@ public class ProjectComboBoxCellEditor extends CellEditor {
 
     @Override
     protected void doSetFocus() {
+        populateItems();
+        combo.setFocus();
+    }
+
+    private void populateItems() {
+        String current = combo.getText();
         IProject[] projects = ResourcesPlugin.getWorkspace().getRoot().getProjects();
         String[] names = Arrays.stream(projects)
             .map(IProject::getName)
             .sorted(Comparator.naturalOrder())
             .toArray(String[]::new);
         combo.setItems(names);
-        combo.setFocus();
+        if (!current.isEmpty()) combo.setText(current);
     }
 
     @Override
