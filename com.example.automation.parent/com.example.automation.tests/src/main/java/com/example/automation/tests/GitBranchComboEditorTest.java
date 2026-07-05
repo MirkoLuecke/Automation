@@ -44,4 +44,9 @@ public class GitBranchComboEditorTest {
             "  origin/main\n  origin/develop\n");
         assertEquals(List.of("develop", "main"), result);
     }
+
+    @Test
+    public void parseRemoteBranches_nullInput_returnsEmpty() {
+        assertTrue(GitBranchComboEditor.parseRemoteBranches(null).isEmpty());
+    }
 }

@@ -1,10 +1,9 @@
 package com.example.automation;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.eclipse.jface.viewers.CellEditor;
 import org.eclipse.swt.SWT;
@@ -25,6 +24,7 @@ public class GitBranchComboEditor extends CellEditor {
     @Override
     protected Control createControl(Composite parent) {
         combo = new Combo(parent, SWT.DROP_DOWN);
+        // focusLost and keyReleaseOccured listeners wired in Task 2
         return combo;
     }
 
@@ -34,13 +34,12 @@ public class GitBranchComboEditor extends CellEditor {
 
     public static List<String> parseRemoteBranches(String gitOutput) {
         if (gitOutput == null || gitOutput.isBlank()) return List.of();
-        LinkedHashSet<String> seen = new LinkedHashSet<>();
-        Arrays.stream(gitOutput.split("\n"))
+        return Arrays.stream(gitOutput.split("\n"))
             .map(String::trim)
             .filter(line -> !line.isEmpty() && !line.contains(" -> "))
             .map(line -> { int slash = line.indexOf('/'); return slash >= 0 ? line.substring(slash + 1) : line; })
+            .distinct()
             .sorted()
-            .forEach(seen::add);
-        return new ArrayList<>(seen);
+            .collect(Collectors.toList());
     }
 }
