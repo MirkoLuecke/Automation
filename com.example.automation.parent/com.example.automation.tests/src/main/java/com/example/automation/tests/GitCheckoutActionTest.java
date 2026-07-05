@@ -33,6 +33,7 @@ public class GitCheckoutActionTest {
         runGit(repo, "config", "user.name", "Test");
         runGit(repo, "commit", "--allow-empty", "-m", "init");
         runGit(repo, "branch", "feature");
+        runGit(repo, "branch", "main");
     }
 
     @Test
@@ -43,10 +44,10 @@ public class GitCheckoutActionTest {
     }
 
     @Test
-    public void validate_rejectsBlankBranch() {
+    public void validate_allowsBlankBranch() {
         List<String> errors = new GitCheckoutAction().validate(
             Map.of("repoDir", "/tmp/repo", "branch", ""));
-        assertFalse(errors.isEmpty());
+        assertTrue("blank branch must be valid (defaults to main)", errors.isEmpty());
     }
 
     @Test
@@ -54,6 +55,11 @@ public class GitCheckoutActionTest {
         List<String> errors = new GitCheckoutAction().validate(
             Map.of("repoDir", "/tmp/repo", "branch", "main"));
         assertTrue(errors.isEmpty());
+    }
+
+    @Test
+    public void defaultConfig_branchIsMain() {
+        assertEquals("main", new GitCheckoutAction().getDefaultConfig().get("branch"));
     }
 
     @Test
@@ -73,6 +79,16 @@ public class GitCheckoutActionTest {
             nullCtx());
         String head = Files.readString(new File(repo, ".git/HEAD").toPath()).trim();
         assertEquals("ref: refs/heads/feature", head);
+    }
+
+    @Test
+    public void execute_blankBranch_checkoutsMain() throws Exception {
+        runGit(repo, "checkout", "feature");
+        new GitCheckoutAction().execute(
+            Map.of("repoDir", repo.getAbsolutePath(), "branch", ""),
+            nullCtx());
+        String head = Files.readString(new File(repo, ".git/HEAD").toPath()).trim();
+        assertEquals("ref: refs/heads/main", head);
     }
 
     private static IActionContext nullCtx() {
