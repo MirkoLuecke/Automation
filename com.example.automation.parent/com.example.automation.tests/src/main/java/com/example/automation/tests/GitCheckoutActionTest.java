@@ -28,12 +28,11 @@ public class GitCheckoutActionTest {
     @Before
     public void initRepo() throws Exception {
         repo = tmp.newFolder("repo");
-        runGit(repo, "init");
+        runGit(repo, "init", "-b", "main");
         runGit(repo, "config", "user.email", "test@example.com");
         runGit(repo, "config", "user.name", "Test");
         runGit(repo, "commit", "--allow-empty", "-m", "init");
         runGit(repo, "branch", "feature");
-        runGit(repo, "branch", "main");
     }
 
     @Test
