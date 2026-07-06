@@ -63,8 +63,11 @@ public final class PathVariableSuggestions {
                 projectSuggestions.add(new Suggestion(
                     varForm, target.toString(), "project " + project.getName()));
         }
-        // Sort by variable form length descending: longer = more specific prefix
-        projectSuggestions.sort((a, b) -> b.variableForm.length() - a.variableForm.length());
+        // Sort: fewest .. traversals first, then longer form first (more specific)
+        projectSuggestions.sort((a, b) -> {
+            int cmp = countParentComponents(a.variableForm) - countParentComponents(b.variableForm);
+            return cmp != 0 ? cmp : b.variableForm.length() - a.variableForm.length();
+        });
         result.addAll(projectSuggestions);
 
         // 2. ${workspace_loc} — workspace root
@@ -132,11 +135,24 @@ public final class PathVariableSuggestions {
         return result;
     }
 
-    /** Returns null if {@code target} does not start with {@code base}. */
+    /** Returns null only when paths are on different filesystem roots (e.g. different Windows drives). */
     static String buildVariableForm(String variableExpr, Path base, Path target) {
-        if (!target.startsWith(base)) return null;
-        if (target.equals(base)) return variableExpr;
-        Path relative = base.relativize(target);
-        return variableExpr + "/" + relative.toString().replace('\\', '/');
+        try {
+            if (target.equals(base)) return variableExpr;
+            Path relative = base.relativize(target);
+            return variableExpr + "/" + relative.toString().replace('\\', '/');
+        } catch (IllegalArgumentException e) {
+            // Different filesystem roots (e.g. C:\ vs D:\) — cannot express as relative path
+            return null;
+        }
+    }
+
+    /** Counts the number of {@code ..} components in a variable form string. */
+    static int countParentComponents(String variableForm) {
+        int count = 0;
+        for (String part : variableForm.split("/")) {
+            if ("..".equals(part)) count++;
+        }
+        return count;
     }
 }

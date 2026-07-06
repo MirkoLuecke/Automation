@@ -79,15 +79,16 @@ public class PathVariableSuggestionsTest {
     }
 
     @Test
-    public void compute_pathOutsideWorkspace_noWorkspaceLocSuggestion() {
+    public void compute_pathOutsideWorkspace_returnsWorkspaceLocWithParentTraversal() {
         java.nio.file.Path outside = java.nio.file.Paths.get(wsAbsPath()).getParent();
         if (outside == null) return; // workspace is at filesystem root, skip
-        String path = outside.resolve("outside.xml").toString();
+        String path = outside.resolve("sibling").toString();
         List<Suggestion> suggestions = PathVariableSuggestions.compute(
             path, new IProject[0], mgr);
-        assertTrue("No workspace_loc suggestion expected for path outside workspace",
-            suggestions.stream().noneMatch(
-                s -> s.variableForm.startsWith("${workspace_loc}")));
+        assertTrue("Expected ${workspace_loc} suggestion with .. traversal for path outside workspace",
+            suggestions.stream().anyMatch(
+                s -> s.variableForm.startsWith("${workspace_loc}") &&
+                     s.variableForm.contains("..")));
     }
 
     @Test

@@ -126,25 +126,13 @@ public class PathPickerDialog extends TitleAreaDialog {
     private void refreshSuggestions(String text) {
         List<Suggestion> suggestions;
         if (text == null || text.isBlank()) {
-            // No path yet — show available workspace roots so user can discover variables
+            // No path yet — show available workspace roots for discovery
             suggestions = new ArrayList<>(PathVariableSuggestions.computeAvailableRoots());
         } else {
             String absolute = resolveToAbsolute(text);
-            if (absolute != null) {
-                suggestions = new ArrayList<>(PathVariableSuggestions.compute(absolute));
-                // If no variable forms matched, supplement with available roots before absolute
-                boolean hasVarForm = suggestions.stream()
-                    .anyMatch(s -> s.variableForm.startsWith("${"));
-                if (!hasVarForm && suggestions.size() >= 1) {
-                    // Remove the absolute path entry, insert roots, re-append absolute
-                    Suggestion absSuggestion = suggestions.remove(suggestions.size() - 1);
-                    suggestions.addAll(PathVariableSuggestions.computeAvailableRoots());
-                    suggestions.add(absSuggestion);
-                }
-            } else {
-                // Cannot resolve to absolute (e.g. undefined variable) — show available roots
-                suggestions = new ArrayList<>(PathVariableSuggestions.computeAvailableRoots());
-            }
+            suggestions = absolute != null
+                ? PathVariableSuggestions.compute(absolute)
+                : new ArrayList<>(PathVariableSuggestions.computeAvailableRoots());
         }
         suggestionsViewer.setInput(suggestions);
     }
