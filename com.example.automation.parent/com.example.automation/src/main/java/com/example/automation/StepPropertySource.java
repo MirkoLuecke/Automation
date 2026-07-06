@@ -158,7 +158,7 @@ public class StepPropertySource implements IPropertySource {
             return new PropertyDescriptor(key, key) {
                 @Override
                 public org.eclipse.jface.viewers.CellEditor createPropertyEditor(Composite parent) {
-                    return new PathCellEditor(parent, step, PathCellEditor.PathType.DIRECTORY);
+                    return new PathCellEditor(parent, PathCellEditor.PathType.DIRECTORY);
                 }
             };
         }
@@ -166,7 +166,7 @@ public class StepPropertySource implements IPropertySource {
             return new PropertyDescriptor(key, key) {
                 @Override
                 public org.eclipse.jface.viewers.CellEditor createPropertyEditor(Composite parent) {
-                    return new PathCellEditor(parent, step, PathCellEditor.PathType.FILE);
+                    return new PathCellEditor(parent, PathCellEditor.PathType.FILE);
                 }
             };
         }
