@@ -116,6 +116,24 @@ public class PathVariableSuggestionsTest {
     }
 
     @Test
+    public void compute_userValueVariable_includedIfPrefixMatches() throws Exception {
+        String varName = "testPathVar_" + System.currentTimeMillis();
+        org.eclipse.core.variables.IValueVariable var =
+            mgr.newValueVariable(varName, "test variable", false, projectAbsPath());
+        mgr.addVariables(new org.eclipse.core.variables.IValueVariable[]{var});
+        try {
+            String path = projectAbsPath() + File.separator + "data" + File.separator + "config.xml";
+            List<Suggestion> suggestions = PathVariableSuggestions.compute(
+                path, new IProject[0], mgr);
+            assertTrue("Expected a suggestion for the user-defined value variable",
+                suggestions.stream().anyMatch(
+                    s -> s.variableForm.startsWith("${" + varName + "}")));
+        } finally {
+            mgr.removeVariables(new org.eclipse.core.variables.IValueVariable[]{var});
+        }
+    }
+
+    @Test
     public void compute_closedProject_notIncluded() throws Exception {
         testProject.close(new NullProgressMonitor());
         String path = projectAbsPath() + File.separator + "pom.xml";

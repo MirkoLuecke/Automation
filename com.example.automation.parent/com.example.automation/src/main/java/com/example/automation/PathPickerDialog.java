@@ -176,12 +176,13 @@ public class PathPickerDialog extends TitleAreaDialog {
         return textField != null ? textField.getText() : null;
     }
 
-    /** Programmatically selects the suggestion at {@code index} in the table, firing the SelectionChangedListener. For tests only. */
+    /** Programmatically selects the suggestion at {@code index} and fires SelectionChangedListeners. For tests only. */
     public void selectSuggestionAt(int index) {
         if (suggestionsViewer == null) return;
-        suggestionsViewer.getTable().setSelection(index);
-        suggestionsViewer.getTable().notifyListeners(
-            org.eclipse.swt.SWT.Selection, new org.eclipse.swt.widgets.Event());
+        Object element = suggestionsViewer.getElementAt(index);
+        if (element != null)
+            suggestionsViewer.setSelection(
+                new org.eclipse.jface.viewers.StructuredSelection(element), true);
     }
 
     /** Returns the number of suggestions currently shown. For tests only. */

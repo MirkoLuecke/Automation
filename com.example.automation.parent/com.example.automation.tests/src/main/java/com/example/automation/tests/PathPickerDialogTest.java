@@ -64,6 +64,22 @@ public class PathPickerDialogTest {
     }
 
     @Test
+    public void dialog_opensWithFileTypeWithoutError() {
+        boolean[] created = {false};
+        Display.getDefault().syncExec(() -> {
+            Shell shell = new Shell(Display.getDefault(), SWT.NONE);
+            shell.open();
+            PathPickerDialog d = new PathPickerDialog(shell, "", PathType.FILE);
+            d.setBlockOnOpen(false);
+            d.open();
+            created[0] = d.getShell() != null && !d.getShell().isDisposed();
+            d.close();
+            shell.dispose();
+        });
+        assertTrue("Dialog must open cleanly with FILE type", created[0]);
+    }
+
+    @Test
     public void dialog_suggestionSelection_updatesTextField() {
         boolean[] selectionWorked = {false};
         Display.getDefault().syncExec(() -> {
