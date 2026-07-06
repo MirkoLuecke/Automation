@@ -170,4 +170,17 @@ public class PathPickerDialog extends TitleAreaDialog {
 
     /** Returns the path value entered by the user, or {@code null} if cancelled. */
     public String getResult() { return result; }
+
+    /** Returns the current text field value. For tests only. */
+    public String getCurrentTextValue() {
+        return textField != null ? textField.getText() : null;
+    }
+
+    /** Programmatically selects the suggestion at {@code index} in the table, firing the SelectionChangedListener. For tests only. */
+    public void selectSuggestionAt(int index) {
+        if (suggestionsViewer == null) return;
+        suggestionsViewer.getTable().setSelection(index);
+        suggestionsViewer.getTable().notifyListeners(
+            org.eclipse.swt.SWT.Selection, new org.eclipse.swt.widgets.Event());
+    }
 }
