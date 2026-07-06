@@ -1,7 +1,7 @@
 package com.example.automation;
 
 import java.util.Arrays;
-import java.util.Comparator;
+import java.util.TreeSet;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.ResourcesPlugin;
@@ -18,19 +18,21 @@ import org.eclipse.swt.widgets.Control;
 /**
  * Editable combo-box cell editor pre-populated with all Eclipse workspace
  * project names, sorted alphabetically. The list is rebuilt on every focus
- * event so it is never stale. The user may also type a name not in the list.
+ * event so it is never stale. SWT.READ_ONLY avoids the GTK bug where clicking
+ * the dropdown arrow fires a spurious focusLost that would deactivate the editor.
  */
 public class ProjectComboBoxCellEditor extends CellEditor {
 
     private Combo combo;
+    private String lastValue = "";
 
     public ProjectComboBoxCellEditor(Composite parent) {
-        super(parent);
+        create(parent);
     }
 
     @Override
     protected Control createControl(Composite parent) {
-        combo = new Combo(parent, SWT.DROP_DOWN);
+        combo = new Combo(parent, SWT.READ_ONLY);
         populateItems();
         combo.addFocusListener(new FocusAdapter() {
             @Override
@@ -54,23 +56,25 @@ public class ProjectComboBoxCellEditor extends CellEditor {
     }
 
     private void populateItems() {
-        String current = combo.getText();
         IProject[] projects = ResourcesPlugin.getWorkspace().getRoot().getProjects();
-        String[] names = Arrays.stream(projects)
-            .map(IProject::getName)
-            .sorted(Comparator.naturalOrder())
-            .toArray(String[]::new);
-        combo.setItems(names);
-        if (!current.isEmpty()) combo.setText(current);
+        TreeSet<String> names = new TreeSet<>();
+        Arrays.stream(projects).map(IProject::getName).forEach(names::add);
+        if (!lastValue.isBlank()) names.add(lastValue);
+        combo.setItems(names.toArray(new String[0]));
+        combo.setText(lastValue);
     }
 
     @Override
     protected Object doGetValue() {
-        return combo.getText();
+        String text = combo.getText();
+        // With READ_ONLY, setText() is a no-op when the value is not in the list.
+        // Fall back to lastValue so saved project names survive populate cycles.
+        return text.isEmpty() ? lastValue : text;
     }
 
     @Override
     protected void doSetValue(Object value) {
-        combo.setText(value instanceof String s ? s : "");
+        lastValue = value instanceof String s ? s : "";
+        combo.setText(lastValue);
     }
 }

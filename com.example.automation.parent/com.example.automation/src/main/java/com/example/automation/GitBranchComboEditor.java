@@ -2,10 +2,12 @@ package com.example.automation;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.TreeSet;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.util.Arrays;
 
 import org.eclipse.core.variables.IStringVariableManager;
 import org.eclipse.core.variables.VariablesPlugin;
@@ -22,16 +24,23 @@ import org.eclipse.swt.widgets.Control;
 public class GitBranchComboEditor extends CellEditor {
 
     private final Supplier<String> repoDirSupplier;
+    private final boolean allowEmpty;
     private Combo combo;
+    private String lastValue = "";
 
     public GitBranchComboEditor(Composite parent, Supplier<String> repoDirSupplier) {
+        this(parent, repoDirSupplier, false);
+    }
+
+    public GitBranchComboEditor(Composite parent, Supplier<String> repoDirSupplier, boolean allowEmpty) {
         this.repoDirSupplier = repoDirSupplier;
+        this.allowEmpty = allowEmpty;
         create(parent);
     }
 
     @Override
     protected Control createControl(Composite parent) {
-        combo = new Combo(parent, SWT.DROP_DOWN);
+        combo = new Combo(parent, SWT.READ_ONLY);
         populateItems();
         combo.addFocusListener(new FocusAdapter() {
             @Override
@@ -57,20 +66,38 @@ public class GitBranchComboEditor extends CellEditor {
 
     @Override
     protected Object doGetValue() {
-        return combo.getText();
+        String text = combo.getText();
+        // With READ_ONLY, setText() is a no-op when the value is not in the list.
+        // Fall back to lastValue so custom/non-remote branch names are not lost.
+        return text.isEmpty() ? lastValue : text;
     }
 
     @Override
     protected void doSetValue(Object value) {
-        combo.setText(value instanceof String s ? s : "");
+        lastValue = value instanceof String s ? s : "";
+        combo.setText(lastValue);
     }
 
     private void populateItems() {
-        String current = combo.getText();
-        List<String> branches = fetchBranches();
-        String[] items = branches.toArray(new String[0]);
-        combo.setItems(items);
-        if (!current.isEmpty()) combo.setText(current);
+        List<String> fetched = fetchBranches();
+        boolean hasPlaceholder = !fetched.isEmpty() && fetched.get(0).startsWith("(");
+
+        List<String> items = new ArrayList<>();
+        if (allowEmpty && !hasPlaceholder) {
+            items.add("");
+        }
+        if (hasPlaceholder) {
+            items.addAll(fetched);
+        } else {
+            // TreeSet gives deduplication + alphabetical order for free
+            TreeSet<String> sorted = new TreeSet<>(fetched);
+            if (!lastValue.isBlank() && !lastValue.startsWith("(")) {
+                sorted.add(lastValue);
+            }
+            items.addAll(sorted);
+        }
+        combo.setItems(items.toArray(new String[0]));
+        combo.setText(lastValue);
     }
 
     private List<String> fetchBranches() {
