@@ -8,10 +8,16 @@ public class RemoteWorkflow {
     public final String filename;   // e.g. "my-workflow.json"
     public final Workflow workflow;
     public final String rawJson;
+    public final String url;        // full download URL, or null if not available
 
     public RemoteWorkflow(String filename, Workflow workflow, String rawJson) {
+        this(filename, workflow, rawJson, null);
+    }
+
+    public RemoteWorkflow(String filename, Workflow workflow, String rawJson, String url) {
         this.filename = filename;
         this.workflow = workflow;
         this.rawJson = rawJson;
+        this.url = url;
     }
 }

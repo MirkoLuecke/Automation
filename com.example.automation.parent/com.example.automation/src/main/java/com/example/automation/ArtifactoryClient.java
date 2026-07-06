@@ -75,7 +75,7 @@ public class ArtifactoryClient {
             if (!filename.endsWith(".json")) continue;
             String raw = downloadWorkflow(filename);
             Workflow wf = gson.fromJson(raw, Workflow.class);
-            result.add(new RemoteWorkflow(filename, wf, raw));
+            result.add(new RemoteWorkflow(filename, wf, raw, folderUrl + "/" + filename));
         }
         return result;
     }

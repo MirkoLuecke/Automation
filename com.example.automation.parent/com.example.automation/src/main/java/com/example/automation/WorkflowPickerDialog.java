@@ -40,23 +40,32 @@ public class WorkflowPickerDialog extends TitleAreaDialog {
     public static class WorkflowEntry {
         public final Workflow workflow;
         public final SourceType source;
-        public final String rawJson;   // null for LOCAL
+        public final String rawJson;    // null for LOCAL
         public final String filename;
+        public final String location;   // absolute file path (LOCAL) or download URL (ARTIFACTORY)
 
-        public WorkflowEntry(Workflow workflow, SourceType source, String rawJson, String filename) {
+        public WorkflowEntry(Workflow workflow, SourceType source, String rawJson, String filename, String location) {
             this.workflow = workflow;
             this.source = source;
             this.rawJson = rawJson;
             this.filename = filename;
+            this.location = location;
         }
     }
 
     public static List<WorkflowEntry> buildEntries(List<Workflow> local, List<RemoteWorkflow> remote) {
+        return buildEntries(local, remote, null);
+    }
+
+    public static List<WorkflowEntry> buildEntries(List<Workflow> local, List<RemoteWorkflow> remote, File storageDir) {
         List<WorkflowEntry> result = new ArrayList<>();
-        for (Workflow wf : local)
-            result.add(new WorkflowEntry(wf, SourceType.LOCAL, null, wf.getWorkflowId() + ".json"));
+        for (Workflow wf : local) {
+            String filename = wf.getWorkflowId() + ".json";
+            String loc = storageDir != null ? new File(storageDir, filename).getAbsolutePath() : null;
+            result.add(new WorkflowEntry(wf, SourceType.LOCAL, null, filename, loc));
+        }
         for (RemoteWorkflow rw : remote)
-            result.add(new WorkflowEntry(rw.workflow, SourceType.ARTIFACTORY, rw.rawJson, rw.filename));
+            result.add(new WorkflowEntry(rw.workflow, SourceType.ARTIFACTORY, rw.rawJson, rw.filename, rw.url));
         result.sort(Comparator
             .comparing((WorkflowEntry e) -> e.workflow.getDisplayName() == null ? "" : e.workflow.getDisplayName())
             .thenComparingInt(e -> e.source == SourceType.LOCAL ? 0 : 1));
@@ -142,6 +151,16 @@ public class WorkflowPickerDialog extends TitleAreaDialog {
             }
         });
 
+        TableViewerColumn locationCol = new TableViewerColumn(viewer, SWT.NONE);
+        locationCol.getColumn().setText("Location");
+        locationCol.getColumn().setWidth(350);
+        locationCol.setLabelProvider(new ColumnLabelProvider() {
+            @Override public String getText(Object element) {
+                String loc = ((WorkflowEntry) element).location;
+                return loc != null ? loc : "";
+            }
+        });
+
         // Fetch Artifactory entries and populate the table
         List<RemoteWorkflow> remote = Collections.emptyList();
         try {
@@ -149,7 +168,7 @@ public class WorkflowPickerDialog extends TitleAreaDialog {
         } catch (ArtifactoryException e) {
             showWarning(e.getMessage());
         }
-        viewer.setInput(buildEntries(localWorkflows, remote));
+        viewer.setInput(buildEntries(localWorkflows, remote, storageDir));
 
         viewer.addSelectionChangedListener(e ->
             getButton(OK).setEnabled(!viewer.getStructuredSelection().isEmpty()));
