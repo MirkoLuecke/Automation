@@ -116,17 +116,13 @@ public class PathVariableSuggestionsTest {
     }
 
     @Test
-    public void compute_closedProject_notIncluded() {
-        try {
-            testProject.close(new NullProgressMonitor());
-            String path = projectAbsPath() + File.separator + "pom.xml";
-            List<Suggestion> suggestions = PathVariableSuggestions.compute(
-                path, new IProject[]{testProject}, mgr);
-            assertTrue("Closed project must not produce a suggestion",
-                suggestions.stream().noneMatch(
-                    s -> s.variableForm.contains(PROJECT_NAME)));
-        } catch (Exception e) {
-            fail("Unexpected exception: " + e.getMessage());
-        }
+    public void compute_closedProject_notIncluded() throws Exception {
+        testProject.close(new NullProgressMonitor());
+        String path = projectAbsPath() + File.separator + "pom.xml";
+        List<Suggestion> suggestions = PathVariableSuggestions.compute(
+            path, new IProject[]{testProject}, mgr);
+        assertTrue("Closed project must not produce a workspace_loc:/Name suggestion",
+            suggestions.stream().noneMatch(
+                s -> s.variableForm.startsWith("${workspace_loc:/" + PROJECT_NAME)));
     }
 }

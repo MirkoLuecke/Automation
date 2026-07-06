@@ -36,22 +36,18 @@ public final class PathVariableSuggestions {
     /**
      * Computes ranked variable-form suggestions for {@code absolutePath}.
      * Order: per-project workspace matches (most-specific first), workspace root,
-     * other registered Eclipse variables (alphabetical), absolute path last.
+     * user-defined value variables, absolute path last.
      *
-     * <p>If the target path lies inside a closed project (and no open project
-     * covers it), an empty list is returned — the path is inaccessible.</p>
+     * <p>Only {@code IValueVariable} instances (user-defined stored values) are
+     * enumerated dynamically. Built-in {@code IDynamicVariable}s (other than
+     * {@code workspace_loc}) are intentionally skipped: many require a UI selection
+     * context and would open modal dialogs when resolved outside that context.</p>
      */
     public static List<Suggestion> compute(
             String absolutePath, IProject[] projects, IStringVariableManager mgr) {
         if (absolutePath == null || absolutePath.isBlank()) return List.of();
 
         Path target = Paths.get(absolutePath).toAbsolutePath().normalize();
-
-        // Determine whether the target is inside any project (open or closed)
-        // and whether it is inside any OPEN project.
-        boolean insideClosedProjectOnly = isInsideClosedProjectOnly(target, projects, mgr);
-        if (insideClosedProjectOnly) return List.of();
-
         List<Suggestion> result = new ArrayList<>();
 
         // 1. Per-project ${workspace_loc:/Name} — most specific (open projects only)
@@ -71,126 +67,33 @@ public final class PathVariableSuggestions {
         projectSuggestions.sort((a, b) -> b.variableForm.length() - a.variableForm.length());
         result.addAll(projectSuggestions);
 
-        // 2. ${workspace_loc} — workspace root (only when target is not inside any project)
-        boolean insideAnyProject = isInsideAnyProject(target, projects, mgr);
-        if (!insideAnyProject) {
-            try {
-                String wsResolved = mgr.performStringSubstitution("${workspace_loc}", false);
-                if (wsResolved != null && !wsResolved.isBlank()) {
-                    Path wsPath = Paths.get(wsResolved).toAbsolutePath().normalize();
-                    String varForm = buildVariableForm("${workspace_loc}", wsPath, target);
-                    if (varForm != null)
-                        result.add(new Suggestion(varForm, target.toString(), "workspace root"));
-                }
-            } catch (Exception ignored) {}
-        }
-
-        // 3. All other registered dynamic variables (no argument, skipping workspace_loc)
-        for (var dynVar : mgr.getDynamicVariables()) {
-            String name = dynVar.getName();
-            if ("workspace_loc".equals(name)) continue;
-            try {
-                String resolved = mgr.performStringSubstitution("${" + name + "}", false);
-                if (resolved == null || resolved.isBlank()) continue;
-                Path varPath = Paths.get(resolved).toAbsolutePath().normalize();
-                String varForm = buildVariableForm("${" + name + "}", varPath, target);
+        // 2. ${workspace_loc} — workspace root
+        try {
+            String wsResolved = mgr.performStringSubstitution("${workspace_loc}", false);
+            if (wsResolved != null && !wsResolved.isBlank()) {
+                Path wsPath = Paths.get(wsResolved).toAbsolutePath().normalize();
+                String varForm = buildVariableForm("${workspace_loc}", wsPath, target);
                 if (varForm != null)
-                    result.add(new Suggestion(varForm, target.toString(), name));
-            } catch (Exception ignored) {}
-        }
+                    result.add(new Suggestion(varForm, target.toString(), "workspace root"));
+            }
+        } catch (Exception ignored) {}
 
-        // 4. User-defined value variables
+        // 3. User-defined value variables (stored values — safe to resolve without UI context)
         for (var valVar : mgr.getValueVariables()) {
             try {
-                String resolved = mgr.performStringSubstitution(
-                    "${" + valVar.getName() + "}", false);
-                if (resolved == null || resolved.isBlank()) continue;
-                Path varPath = Paths.get(resolved).toAbsolutePath().normalize();
+                String value = valVar.getValue();
+                if (value == null || value.isBlank()) continue;
+                Path varPath = Paths.get(value).toAbsolutePath().normalize();
                 String varForm = buildVariableForm("${" + valVar.getName() + "}", varPath, target);
                 if (varForm != null)
                     result.add(new Suggestion(varForm, target.toString(), valVar.getName()));
             } catch (Exception ignored) {}
         }
 
-        // 5. Absolute path — always last
+        // 4. Absolute path — always last
         result.add(new Suggestion(target.toString(), target.toString(), "absolute path"));
 
         return result;
-    }
-
-    /**
-     * Returns true if the target path is inside at least one project from the array,
-     * but none of those covering projects is open.
-     */
-    private static boolean isInsideClosedProjectOnly(
-            Path target, IProject[] projects, IStringVariableManager mgr) {
-        boolean insideOpen = false;
-        boolean insideClosed = false;
-
-        // Check via workspace-root + project-name convention
-        try {
-            String wsResolved = mgr.performStringSubstitution("${workspace_loc}", false);
-            if (wsResolved != null && !wsResolved.isBlank()) {
-                Path wsPath = Paths.get(wsResolved).toAbsolutePath().normalize();
-                if (target.startsWith(wsPath)) {
-                    Path rel = wsPath.relativize(target);
-                    if (rel.getNameCount() > 0) {
-                        String firstSegment = rel.getName(0).toString();
-                        for (IProject project : projects) {
-                            if (project.getName().equalsIgnoreCase(firstSegment)) {
-                                if (project.isOpen()) insideOpen = true;
-                                else insideClosed = true;
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (Exception ignored) {}
-
-        // Also check via IProject.getLocation() for linked/external projects
-        for (IProject project : projects) {
-            org.eclipse.core.runtime.IPath loc = project.getLocation();
-            if (loc == null) continue;
-            Path projectPath = loc.toFile().toPath().toAbsolutePath().normalize();
-            if (target.startsWith(projectPath)) {
-                if (project.isOpen()) insideOpen = true;
-                else insideClosed = true;
-            }
-        }
-
-        return insideClosed && !insideOpen;
-    }
-
-    /**
-     * Returns true if the target path is inside at least one project (open or closed).
-     */
-    private static boolean isInsideAnyProject(
-            Path target, IProject[] projects, IStringVariableManager mgr) {
-        // Check via workspace-root + project-name convention
-        try {
-            String wsResolved = mgr.performStringSubstitution("${workspace_loc}", false);
-            if (wsResolved != null && !wsResolved.isBlank()) {
-                Path wsPath = Paths.get(wsResolved).toAbsolutePath().normalize();
-                if (target.startsWith(wsPath)) {
-                    Path rel = wsPath.relativize(target);
-                    if (rel.getNameCount() > 0) {
-                        String firstSegment = rel.getName(0).toString();
-                        for (IProject project : projects) {
-                            if (project.getName().equalsIgnoreCase(firstSegment)) return true;
-                        }
-                    }
-                }
-            }
-        } catch (Exception ignored) {}
-
-        // Also check via IProject.getLocation()
-        for (IProject project : projects) {
-            org.eclipse.core.runtime.IPath loc = project.getLocation();
-            if (loc == null) continue;
-            Path projectPath = loc.toFile().toPath().toAbsolutePath().normalize();
-            if (target.startsWith(projectPath)) return true;
-        }
-        return false;
     }
 
     /** Returns null if {@code target} does not start with {@code base}. */
