@@ -183,4 +183,16 @@ public class PathPickerDialog extends TitleAreaDialog {
         suggestionsViewer.getTable().notifyListeners(
             org.eclipse.swt.SWT.Selection, new org.eclipse.swt.widgets.Event());
     }
+
+    /** Returns the number of suggestions currently shown. For tests only. */
+    public int getSuggestionCount() {
+        return suggestionsViewer != null ? suggestionsViewer.getTable().getItemCount() : 0;
+    }
+
+    /** Returns the Variable Form text of the suggestion at {@code index}. For tests only. */
+    public String getSuggestionTextAt(int index) {
+        if (suggestionsViewer == null) return null;
+        org.eclipse.swt.widgets.TableItem item = suggestionsViewer.getTable().getItem(index);
+        return item.getText(0); // column 0 = "Variable Form"
+    }
 }
