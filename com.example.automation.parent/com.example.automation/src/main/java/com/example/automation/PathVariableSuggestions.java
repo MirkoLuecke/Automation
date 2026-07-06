@@ -96,6 +96,42 @@ public final class PathVariableSuggestions {
         return result;
     }
 
+    /** Convenience overload that uses the live Eclipse registry and all open projects. */
+    public static List<Suggestion> computeAvailableRoots() {
+        IStringVariableManager mgr = VariablesPlugin.getDefault().getStringVariableManager();
+        IProject[] projects = ResourcesPlugin.getWorkspace().getRoot().getProjects();
+        return computeAvailableRoots(projects, mgr);
+    }
+
+    /**
+     * Returns workspace root and open project variables as navigation references.
+     * Used when {@code compute()} finds no variable-form matches, so the user can
+     * discover available workspace roots and click one to start building a path.
+     */
+    public static List<Suggestion> computeAvailableRoots(
+            IProject[] projects, IStringVariableManager mgr) {
+        List<Suggestion> result = new ArrayList<>();
+
+        // Per-project roots (open projects only)
+        for (IProject project : projects) {
+            if (!project.isOpen()) continue;
+            org.eclipse.core.runtime.IPath loc = project.getLocation();
+            String resolved = loc != null ? loc.toFile().getAbsolutePath() : "";
+            result.add(new Suggestion(
+                "${workspace_loc:/" + project.getName() + "}", resolved,
+                "project " + project.getName()));
+        }
+
+        // Workspace root
+        try {
+            String wsResolved = mgr.performStringSubstitution("${workspace_loc}", false);
+            if (wsResolved != null && !wsResolved.isBlank())
+                result.add(new Suggestion("${workspace_loc}", wsResolved, "workspace root"));
+        } catch (Exception ignored) {}
+
+        return result;
+    }
+
     /** Returns null if {@code target} does not start with {@code base}. */
     static String buildVariableForm(String variableExpr, Path base, Path target) {
         if (!target.startsWith(base)) return null;

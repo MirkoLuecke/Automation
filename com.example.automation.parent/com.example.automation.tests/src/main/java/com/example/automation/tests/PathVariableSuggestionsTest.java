@@ -134,6 +134,15 @@ public class PathVariableSuggestionsTest {
     }
 
     @Test
+    public void computeAvailableRoots_includesOpenProject() {
+        List<Suggestion> roots = PathVariableSuggestions.computeAvailableRoots(
+            new IProject[]{testProject}, mgr);
+        assertTrue("Expected a root entry for the open test project",
+            roots.stream().anyMatch(
+                s -> s.variableForm.equals("${workspace_loc:/" + PROJECT_NAME + "}")));
+    }
+
+    @Test
     public void compute_closedProject_notIncluded() throws Exception {
         testProject.close(new NullProgressMonitor());
         String path = projectAbsPath() + File.separator + "pom.xml";
