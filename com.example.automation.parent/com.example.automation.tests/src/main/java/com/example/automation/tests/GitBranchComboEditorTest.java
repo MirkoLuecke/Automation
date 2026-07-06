@@ -5,7 +5,7 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.widgets.Combo;
+import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.junit.Rule;
@@ -68,7 +68,7 @@ public class GitBranchComboEditorTest {
             Shell shell = new Shell(Display.getDefault(), SWT.NONE);
             shell.open();
             GitBranchComboEditor editor = new GitBranchComboEditor(shell, () -> "");
-            found[0] = Arrays.asList(((Combo) editor.getControl()).getItems())
+            found[0] = Arrays.asList(((CCombo) editor.getControl()).getItems())
                              .contains("(configure repoDir first)");
             shell.dispose();
         });
@@ -84,7 +84,7 @@ public class GitBranchComboEditorTest {
             shell.open();
             GitBranchComboEditor editor = new GitBranchComboEditor(shell,
                 () -> plain.getAbsolutePath());
-            found[0] = Arrays.asList(((Combo) editor.getControl()).getItems())
+            found[0] = Arrays.asList(((CCombo) editor.getControl()).getItems())
                              .contains("(no remote branches found)");
             shell.dispose();
         });
@@ -98,7 +98,7 @@ public class GitBranchComboEditorTest {
             Shell shell = new Shell(Display.getDefault(), SWT.NONE);
             shell.open();
             GitBranchComboEditor editor = new GitBranchComboEditor(shell, () -> "");
-            hasItems[0] = ((Combo) editor.getControl()).getItemCount() > 0;
+            hasItems[0] = ((CCombo) editor.getControl()).getItemCount() > 0;
             shell.dispose();
         });
         assertTrue("Combo must have items without calling setFocus()", hasItems[0]);

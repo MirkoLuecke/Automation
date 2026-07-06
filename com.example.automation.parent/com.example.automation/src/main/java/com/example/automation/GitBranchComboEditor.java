@@ -13,11 +13,11 @@ import org.eclipse.core.variables.IStringVariableManager;
 import org.eclipse.core.variables.VariablesPlugin;
 import org.eclipse.jface.viewers.CellEditor;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.events.FocusAdapter;
 import org.eclipse.swt.events.FocusEvent;
 import org.eclipse.swt.events.KeyAdapter;
 import org.eclipse.swt.events.KeyEvent;
-import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 
@@ -25,7 +25,7 @@ public class GitBranchComboEditor extends CellEditor {
 
     private final Supplier<String> repoDirSupplier;
     private final boolean allowEmpty;
-    private Combo combo;
+    private CCombo combo;
     private String lastValue = "";
 
     public GitBranchComboEditor(Composite parent, Supplier<String> repoDirSupplier) {
@@ -40,7 +40,7 @@ public class GitBranchComboEditor extends CellEditor {
 
     @Override
     protected Control createControl(Composite parent) {
-        combo = new Combo(parent, SWT.READ_ONLY);
+        combo = new CCombo(parent, SWT.NONE);
         populateItems();
         combo.addFocusListener(new FocusAdapter() {
             @Override
@@ -66,10 +66,7 @@ public class GitBranchComboEditor extends CellEditor {
 
     @Override
     protected Object doGetValue() {
-        String text = combo.getText();
-        // With READ_ONLY, setText() is a no-op when the value is not in the list.
-        // Fall back to lastValue so custom/non-remote branch names are not lost.
-        return text.isEmpty() ? lastValue : text;
+        return combo.getText();
     }
 
     @Override

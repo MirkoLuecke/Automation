@@ -6,7 +6,7 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.widgets.Combo;
+import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.junit.After;
@@ -40,7 +40,7 @@ public class ProjectComboBoxCellEditorTest {
             shell.open();
             ProjectComboBoxCellEditor editor = new ProjectComboBoxCellEditor(shell);
             editor.setFocus();
-            found[0] = Arrays.asList(((Combo) editor.getControl()).getItems())
+            found[0] = Arrays.asList(((CCombo) editor.getControl()).getItems())
                              .contains(PROJECT_NAME);
             shell.dispose();
         });
@@ -84,7 +84,7 @@ public class ProjectComboBoxCellEditorTest {
             ProjectComboBoxCellEditor editor = new ProjectComboBoxCellEditor(shell);
             // No setFocus() call — simulates Properties view creating the editor
             // without transferring focus (e.g. when the editor is just created).
-            found[0] = Arrays.asList(((Combo) editor.getControl()).getItems())
+            found[0] = Arrays.asList(((CCombo) editor.getControl()).getItems())
                              .contains(PROJECT_NAME);
             shell.dispose();
         });
