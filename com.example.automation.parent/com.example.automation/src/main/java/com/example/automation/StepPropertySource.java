@@ -154,6 +154,14 @@ public class StepPropertySource implements IPropertySource {
                 }
             };
         }
+        if ("import-maven-project".equals(step.getActionId()) && "pomPath".equals(key)) {
+            return new PropertyDescriptor(key, key) {
+                @Override
+                public org.eclipse.jface.viewers.CellEditor createPropertyEditor(Composite parent) {
+                    return new PathCellEditor(parent, PathCellEditor.PathType.DIRECTORY);
+                }
+            };
+        }
         if (StepOperations.isDirField(key)) {
             return new PropertyDescriptor(key, key) {
                 @Override
