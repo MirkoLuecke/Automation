@@ -91,4 +91,33 @@ public class StepTest {
         Step loaded = new Gson().fromJson(json, Step.class);
         assertFalse("missing bold field must default to false", loaded.isBold());
     }
+
+    @Test
+    public void retryOnError_defaultsFalse() {
+        assertFalse(new Step("a").isRetryOnError());
+    }
+
+    @Test
+    public void retryWaitSeconds_defaultsTen() {
+        assertEquals(10, new Step("a").getRetryWaitSeconds());
+    }
+
+    @Test
+    public void retry_gsonRoundTrip() {
+        Step step = new Step("a");
+        step.setRetryOnError(true);
+        step.setRetryWaitSeconds(30);
+        String json = new Gson().toJson(step);
+        Step loaded = new Gson().fromJson(json, Step.class);
+        assertTrue(loaded.isRetryOnError());
+        assertEquals(30, loaded.getRetryWaitSeconds());
+    }
+
+    @Test
+    public void retry_missingFieldsDefaultsFromJson() {
+        String json = "{\"actionId\":\"a\"}";
+        Step loaded = new Gson().fromJson(json, Step.class);
+        assertFalse("retryOnError must default to false", loaded.isRetryOnError());
+        assertEquals("retryWaitSeconds must default to 10", 10, loaded.getRetryWaitSeconds());
+    }
 }
