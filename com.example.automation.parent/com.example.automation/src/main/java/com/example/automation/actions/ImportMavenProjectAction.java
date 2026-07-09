@@ -67,7 +67,7 @@ public class ImportMavenProjectAction implements IAction {
         // Force M2E's Plexus container to fully initialize before calling importProjects().
         // The container boots lazily; if importProjects() is the first call that needs it,
         // it can race with initialization and throw "could not lookup required component".
-        MavenPlugin.getDefault().getMaven().getLocalRepository();
+        MavenPlugin.getMaven().getLocalRepository();
         LocalProjectScanner scanner = new LocalProjectScanner(
             List.of(pomFile.getParentFile().getAbsolutePath()),
             false,
