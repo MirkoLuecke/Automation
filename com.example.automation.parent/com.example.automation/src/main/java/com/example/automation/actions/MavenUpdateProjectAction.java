@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Platform;
@@ -55,6 +56,7 @@ public class MavenUpdateProjectAction implements IAction {
         MavenPlugin.getProjectConfigurationManager().updateProjectConfiguration(
             new MavenUpdateRequest(project, false, false),
             new NullProgressMonitor());
+        project.refreshLocal(IResource.DEPTH_INFINITE, null);
         context.setProgress(100);
     }
 }
