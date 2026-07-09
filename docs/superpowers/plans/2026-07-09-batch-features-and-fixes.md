@@ -1811,7 +1811,89 @@ git commit -m "feat: add SetBuildAutomatically action"
 
 ---
 
-## Task 13: Version bump
+## Task 13: Update README.md documentation
+
+**Spec:** The README is the primary user-facing documentation. All user-visible changes must be reflected there.
+
+**File:** `README.md`
+
+Changes required:
+
+**Toolbar section** — Replace the "Duplicate Step" row with two new rows:
+```
+| Copy Step(s) | Copy Step(s) | Copies the selected step(s) to the system clipboard as JSON. Enabled only when one or more steps are selected. |
+| Paste Step(s) | Paste Step(s) | Inserts the copied step(s) from the clipboard after the current selection (or at the end if nothing is selected). Enabled only when the clipboard contains valid step data. |
+```
+
+**Managing Workflows section** — Update:
+- "Adding a step": change "The step is appended to the end of the current workflow." → "The step is inserted after the currently selected step, or appended at the end if nothing is selected."
+- Replace the "Duplicating a step" paragraph with a "Copying and pasting steps" paragraph explaining Copy Step(s) / Paste Step(s) and that the clipboard is a standard system clipboard (enabling cross-workflow and cross-Eclipse-instance paste). Mention Ctrl+C / Ctrl+V keyboard shortcuts.
+- Add a note: "The last workflow you open is automatically restored when you reopen Eclipse."
+
+**Editing Step Configuration section** — Add a paragraph about retry:
+> Every step has two optional retry fields in the **Step** section of the Properties view: **Retry on error** (No/Yes) and **Retry wait (seconds)** (default 10). When "Retry on error" is set to "Yes", a failing step is retried once after the specified wait time. If the retry also fails, the workflow stops.
+
+**Write File action** — Remove "Eclipse variables are supported." from the `content` field description. Content is written verbatim.
+
+**Add new action entries** after "Set Save Actions":
+
+```markdown
+### Set XML Tag Text
+
+Sets the text content of a specific tag in an XML file. Navigates the XML structure using a slash-separated tag path and replaces the text of all matching nodes. XML comments in the file are preserved.
+
+| Field | Required | Description |
+|---|---|---|
+| `filePath` | Yes | Path to the XML file. Eclipse variables are supported. |
+| `tagPath` | Yes | Slash-separated path to the tag (e.g. `/root/settings/value`). The root element name may be included or omitted. |
+| `value` | No | New text content to set. Eclipse variables are supported. |
+
+If any tag in the path is not found, the step fails with an error message.
+
+### Set Maven Preferences
+
+Configures Maven preferences in Eclipse's M2E settings. Each field is independent — set only the fields you want to change; leave others as "Do not change".
+
+| Field | Options | Description |
+|---|---|---|
+| `downloadSources` | Do not change / Yes / No | Enables or disables automatic download of artifact sources. |
+| `downloadJavadoc` | Do not change / Yes / No | Enables or disables automatic download of artifact Javadoc. |
+| `updateIndexes` | Do not change / Yes / No | Enables or disables repository index updates on startup. |
+
+Requires M2E.
+
+### Set Build Automatically
+
+Enables or disables **Project > Build Automatically** in Eclipse.
+
+| Field | Options | Description |
+|---|---|---|
+| `enabled` | Yes / No | Whether to enable automatic builds. |
+```
+
+**Background execution note** — Add a note to the "Running a workflow" paragraph in Managing Workflows:
+> Workflows run in the background. Progress is visible in Eclipse's Progress view (lower-right corner). The UI remains fully usable while a workflow is running.
+
+- [ ] **Step 1: Update the Toolbar table** — add Copy Step(s) and Paste Step(s) rows, remove Duplicate Step row.
+
+- [ ] **Step 2: Update Managing Workflows section** — insert-after-selection for Add Step, copy/paste replaces duplicate, last workflow restoration note, background execution note.
+
+- [ ] **Step 3: Update Editing Step Configuration section** — add retry fields paragraph.
+
+- [ ] **Step 4: Update Write File action** — remove variable support mention from content field.
+
+- [ ] **Step 5: Add new action entries** — Set XML Tag Text, Set Maven Preferences, Set Build Automatically.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add README.md
+git commit -m "docs: update README for new actions, copy/paste, retry, and background execution"
+```
+
+---
+
+## Task 15: Version bump
 
 **Spec:** Bump plugin version from 1.10.0 to 1.11.0 across all version files.
 
