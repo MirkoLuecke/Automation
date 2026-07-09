@@ -341,7 +341,12 @@ public class AutomationView extends ViewPart {
                     }
                 }
             }
-            currentWorkflow.getSteps().add(step);
+            int lastIdx = lastSelectedIndex();
+            if (lastIdx < 0) {
+                currentWorkflow.getSteps().add(step);
+            } else {
+                currentWorkflow.getSteps().add(lastIdx + 1, step);
+            }
             save();
             viewer.refresh();
             updateButtonStates();
@@ -396,11 +401,10 @@ public class AutomationView extends ViewPart {
         if (currentWorkflow == null) return;
         List<Step> steps = currentWorkflow.getSteps();
         int[] indices = viewer.getTable().getSelectionIndices();
-        Arrays.sort(indices);
         if (!StepOperations.isContiguous(indices)) return;
         List<Step> copies = new ArrayList<>();
         for (int idx : indices) copies.add(StepOperations.deepCopy(steps.get(idx)));
-        int insertAt = indices[indices.length - 1] + 1;
+        int insertAt = lastSelectedIndex() + 1;
         steps.addAll(insertAt, copies);
         save();
         viewer.refresh();
@@ -408,6 +412,14 @@ public class AutomationView extends ViewPart {
         for (int i = 0; i < copies.size(); i++) newSel[i] = insertAt + i;
         viewer.getTable().setSelection(newSel);
         updateButtonStates();
+    }
+
+    /** Returns the highest selected row index, or -1 if nothing is selected. */
+    private int lastSelectedIndex() {
+        int[] indices = viewer.getTable().getSelectionIndices();
+        if (indices.length == 0) return -1;
+        Arrays.sort(indices);
+        return indices[indices.length - 1];
     }
 
     private void onRun() {
