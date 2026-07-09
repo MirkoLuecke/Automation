@@ -75,6 +75,17 @@ public class StepPropertySource implements IPropertySource {
         if (PROP_BOLD.equals(id))   return step.isBold() ? 1 : 0;
         if (PROP_RETRY_ON_ERROR.equals(id))     return step.isRetryOnError() ? 1 : 0;
         if (PROP_RETRY_WAIT_SECONDS.equals(id)) return String.valueOf(step.getRetryWaitSeconds());
+        if ("set-maven-preferences".equals(step.getActionId())
+                && id instanceof String key2
+                && isMavenPrefKey(key2)) {
+            String v = step.getConfig().getOrDefault(key2, "");
+            if ("true".equals(v))  return 1; // Yes
+            if ("false".equals(v)) return 2; // No
+            return 0; // Do not change
+        }
+        if ("set-build-automatically".equals(step.getActionId()) && "enabled".equals(id)) {
+            return "false".equals(step.getConfig().getOrDefault("enabled", "true")) ? 1 : 0;
+        }
         return (id instanceof String key) ? step.getConfig().getOrDefault(key, "") : "";
     }
 
@@ -100,6 +111,23 @@ public class StepPropertySource implements IPropertySource {
         if (PROP_RETRY_WAIT_SECONDS.equals(id)) {
             try { step.setRetryWaitSeconds(Integer.parseInt((String) value)); }
             catch (NumberFormatException ignored) {}
+            save.run();
+            return;
+        }
+        if ("set-maven-preferences".equals(step.getActionId())
+                && id instanceof String key2
+                && isMavenPrefKey(key2)) {
+            String val = switch (value instanceof Integer i ? i : 0) {
+                case 1 -> "true";
+                case 2 -> "false";
+                default -> "";
+            };
+            step.getConfig().put(key2, val);
+            save.run();
+            return;
+        }
+        if ("set-build-automatically".equals(step.getActionId()) && "enabled".equals(id)) {
+            step.getConfig().put("enabled", value instanceof Integer i && i == 0 ? "true" : "false");
             save.run();
             return;
         }
@@ -199,6 +227,14 @@ public class StepPropertySource implements IPropertySource {
                 }
             };
         }
+        if ("set-maven-preferences".equals(step.getActionId())
+                && (key.equals("downloadSources") || key.equals("downloadJavadoc") || key.equals("updateIndexes"))) {
+            return new ComboBoxPropertyDescriptor(key, key,
+                new String[]{"Do not change", "Yes", "No"});
+        }
+        if ("set-build-automatically".equals(step.getActionId()) && "enabled".equals(key)) {
+            return new ComboBoxPropertyDescriptor(key, key, new String[]{"Yes", "No"});
+        }
         if (StepOperations.isDirField(key)) {
             return new PropertyDescriptor(key, key) {
                 @Override
@@ -229,6 +265,10 @@ public class StepPropertySource implements IPropertySource {
     private static boolean isMultiLineField(String actionId, String key) {
         return ("shell-command".equals(actionId) && "command".equals(key))
             || ("write-file".equals(actionId) && "content".equals(key));
+    }
+
+    private static boolean isMavenPrefKey(String key) {
+        return "downloadSources".equals(key) || "downloadJavadoc".equals(key) || "updateIndexes".equals(key);
     }
 
     private List<String> configKeys() {
