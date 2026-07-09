@@ -17,9 +17,11 @@ import com.example.automation.model.Step;
 
 public class StepPropertySource implements IPropertySource {
 
-    private static final String PROP_ACTION = "action";
-    private static final String PROP_NAME   = "name";
-    private static final String PROP_BOLD   = "bold";
+    private static final String PROP_ACTION             = "action";
+    private static final String PROP_NAME               = "name";
+    private static final String PROP_BOLD               = "bold";
+    private static final String PROP_RETRY_ON_ERROR     = "step.retryOnError";
+    private static final String PROP_RETRY_WAIT_SECONDS = "step.retryWaitSeconds";
 
     private final Step step;
     private final ActionRegistry registry;
@@ -48,6 +50,16 @@ public class StepPropertySource implements IPropertySource {
         boldDesc.setCategory("Step");
         list.add(boldDesc);
 
+        ComboBoxPropertyDescriptor retryDesc =
+            new ComboBoxPropertyDescriptor(PROP_RETRY_ON_ERROR, "Retry on error", new String[]{"No", "Yes"});
+        retryDesc.setCategory("Step");
+        list.add(retryDesc);
+
+        TextPropertyDescriptor retryWaitDesc =
+            new TextPropertyDescriptor(PROP_RETRY_WAIT_SECONDS, "Retry wait (seconds)");
+        retryWaitDesc.setCategory("Step");
+        list.add(retryWaitDesc);
+
         for (String key : configKeys()) {
             PropertyDescriptor d = createConfigDescriptor(key);
             d.setCategory("Config");
@@ -61,6 +73,8 @@ public class StepPropertySource implements IPropertySource {
         if (PROP_ACTION.equals(id)) return step.getActionId() != null ? step.getActionId() : "";
         if (PROP_NAME.equals(id))   return step.getName() != null ? step.getName() : "";
         if (PROP_BOLD.equals(id))   return step.isBold() ? 1 : 0;
+        if (PROP_RETRY_ON_ERROR.equals(id))     return step.isRetryOnError() ? 1 : 0;
+        if (PROP_RETRY_WAIT_SECONDS.equals(id)) return String.valueOf(step.getRetryWaitSeconds());
         return (id instanceof String key) ? step.getConfig().getOrDefault(key, "") : "";
     }
 
@@ -75,6 +89,17 @@ public class StepPropertySource implements IPropertySource {
         }
         if (PROP_BOLD.equals(id)) {
             step.setBold(value instanceof Integer i && i == 1);
+            save.run();
+            return;
+        }
+        if (PROP_RETRY_ON_ERROR.equals(id)) {
+            step.setRetryOnError(value instanceof Integer i && i == 1);
+            save.run();
+            return;
+        }
+        if (PROP_RETRY_WAIT_SECONDS.equals(id)) {
+            try { step.setRetryWaitSeconds(Integer.parseInt((String) value)); }
+            catch (NumberFormatException ignored) {}
             save.run();
             return;
         }
@@ -93,6 +118,16 @@ public class StepPropertySource implements IPropertySource {
         }
         if (PROP_BOLD.equals(id)) {
             step.setBold(false);
+            save.run();
+            return;
+        }
+        if (PROP_RETRY_ON_ERROR.equals(id)) {
+            step.setRetryOnError(false);
+            save.run();
+            return;
+        }
+        if (PROP_RETRY_WAIT_SECONDS.equals(id)) {
+            step.setRetryWaitSeconds(10);
             save.run();
             return;
         }
@@ -115,7 +150,9 @@ public class StepPropertySource implements IPropertySource {
     public boolean isPropertySet(Object id) {
         if (PROP_ACTION.equals(id)) return false;
         if (PROP_NAME.equals(id))   return step.getName() != null && !step.getName().isBlank();
-        if (PROP_BOLD.equals(id))   return step.isBold();
+        if (PROP_BOLD.equals(id))               return step.isBold();
+        if (PROP_RETRY_ON_ERROR.equals(id))     return step.isRetryOnError();
+        if (PROP_RETRY_WAIT_SECONDS.equals(id)) return step.getRetryWaitSeconds() != 10;
         if (!(id instanceof String key)) return false;
         IAction action = registry.getAction(step.getActionId());
         if (action == null) return step.getConfig().containsKey(key);
