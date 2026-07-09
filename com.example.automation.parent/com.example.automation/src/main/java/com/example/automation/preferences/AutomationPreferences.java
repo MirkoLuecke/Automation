@@ -13,6 +13,7 @@ public class AutomationPreferences {
     public static final String KEY_DEFAULT_WORKING_DIR  = "defaultWorkingDir";
     public static final String KEY_WORKFLOW_STORAGE     = "workflowStorage";
     public static final String KEY_WORKFLOWS_DEPLOYED   = "workflowsDeployed";
+    public static final String KEY_LAST_WORKFLOW_ID     = "lastWorkflowId";
 
     public static final String DEFAULT_WORKING_DIR      = "${workspace_loc}/..";
     public static final String DEFAULT_WORKFLOW_STORAGE = "${workspace_loc}/../automation";

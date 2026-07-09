@@ -258,6 +258,13 @@ public class AutomationView extends ViewPart {
             viewer.setInput(Collections.emptyList());
         } else {
             currentWorkflow = workflows.get(0);
+            String lastId = AutomationPreferences.store().getString(AutomationPreferences.KEY_LAST_WORKFLOW_ID);
+            if (!lastId.isBlank()) {
+                workflows.stream()
+                    .filter(w -> lastId.equals(w.getWorkflowId()))
+                    .findFirst()
+                    .ifPresent(w -> currentWorkflow = w);
+            }
             viewer.setInput(currentWorkflow.getSteps());
         }
         updateHeader();
@@ -276,6 +283,9 @@ public class AutomationView extends ViewPart {
             viewer.setInput(currentWorkflow.getSteps());
             updateHeader();
             updateButtonStates();
+            AutomationPreferences.store().setValue(
+                AutomationPreferences.KEY_LAST_WORKFLOW_ID,
+                currentWorkflow.getWorkflowId());
         }
     }
 
