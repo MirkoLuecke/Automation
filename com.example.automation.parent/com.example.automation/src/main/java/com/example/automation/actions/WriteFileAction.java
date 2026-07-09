@@ -21,7 +21,7 @@ public class WriteFileAction implements IAction {
 
     @Override public String getId()          { return "write-file"; }
     @Override public String getName()        { return "Write File"; }
-    @Override public String getDescription() { return "Writes text content to a file, creating parent directories as needed. Eclipse variables are supported in both path and content."; }
+    @Override public String getDescription() { return "Writes text content to a file, creating parent directories as needed. Eclipse variables are supported in the path."; }
 
     @Override
     public Map<String, String> getDefaultConfig() {
@@ -42,7 +42,6 @@ public class WriteFileAction implements IAction {
         String content  = config.getOrDefault("content", "");
         context.setProgress(0);
         filePath = EclipseVariables.resolve(filePath);
-        content  = EclipseVariables.resolve(content);
         writeFile(filePath, content);
         context.getStdout().println("Written: " + Path.of(filePath).toAbsolutePath());
         context.setProgress(100);

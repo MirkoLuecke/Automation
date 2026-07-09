@@ -69,6 +69,16 @@ public class WriteFileActionTest {
         assertTrue(progress.contains(100));
     }
 
+    @Test
+    public void execute_contentWithVariableLiteral_writtenVerbatim() throws Exception {
+        File file = new File(tmp.getRoot(), "out.txt");
+        String rawContent = "value=${some_undefined_variable}";
+        new WriteFileAction().execute(
+            Map.of("filePath", file.getAbsolutePath(), "content", rawContent),
+            trackingCtx(new ArrayList<>()));
+        assertEquals(rawContent, Files.readString(file.toPath()));
+    }
+
     private static IActionContext trackingCtx(List<Integer> progress) {
         return new IActionContext() {
             @Override public OutputStream getOutputStream() { return OutputStream.nullOutputStream(); }
