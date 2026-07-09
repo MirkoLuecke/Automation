@@ -71,7 +71,7 @@ public class AutomationView extends ViewPart {
     private ToolItem addStepItem, deleteStepItem, moveUpItem, moveDownItem, duplicateStepItem;
     private ToolItem runItem, runSelectedItem, stopItem;
 
-    private WorkflowRunner activeRunner;
+    private WorkflowJob activeRunner;
     private StepAdapterFactory adapterFactory;
 
     @Override
@@ -457,16 +457,11 @@ public class AutomationView extends ViewPart {
                 viewer.refresh();
             }
         };
-        activeRunner = new WorkflowRunner(
-            steps,
-            ActionRegistry.getInstance(),
-            viewer.getControl().getDisplay()::asyncExec,
-            safeRefresh,
-            onDone,
-            stdout,
-            stderr);
+        String name = currentWorkflow != null ? currentWorkflow.getDisplayName() : "Workflow";
+        activeRunner = new WorkflowJob(name, steps, ActionRegistry.getInstance(),
+            viewer.getControl().getDisplay()::asyncExec, safeRefresh, onDone, stdout, stderr);
         updateButtonStates();
-        activeRunner.start();
+        activeRunner.schedule();
     }
 
     private MessageConsole openConsole() {
