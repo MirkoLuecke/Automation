@@ -131,7 +131,9 @@ public class WorkflowJob extends Job {
         try {
             ResourcesPlugin.getWorkspace().getRoot()
                 .refreshLocal(IResource.DEPTH_INFINITE, monitor);
-        } catch (CoreException ignored) {}
+        } catch (CoreException e) {
+            Platform.getLog(WorkflowJob.class).warn("Workspace refresh failed", e);
+        }
     }
 
     private String resolveWorkingDir(IStringVariableManager svm) {
