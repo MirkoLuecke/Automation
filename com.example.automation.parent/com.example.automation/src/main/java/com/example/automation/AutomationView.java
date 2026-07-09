@@ -18,6 +18,7 @@ import org.eclipse.debug.ui.IDebugUIConstants;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.resource.JFaceResources;
 import org.eclipse.jface.viewers.ArrayContentProvider;
+import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.jface.viewers.TableViewer;
@@ -36,14 +37,20 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.ToolBar;
 import org.eclipse.swt.widgets.ToolItem;
+import org.eclipse.swt.widgets.Tree;
+import org.eclipse.swt.widgets.TreeItem;
 import org.eclipse.ui.IPartListener2;
 import org.eclipse.ui.ISharedImages;
+import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.IWorkbenchPartReference;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.views.properties.IPropertySheetPage;
+import org.eclipse.ui.views.properties.PropertySheetPage;
 import org.eclipse.ui.console.ConsolePlugin;
 import org.eclipse.ui.console.IConsole;
 import org.eclipse.ui.console.IConsoleManager;
@@ -94,6 +101,7 @@ public class AutomationView extends ViewPart {
 
     private WorkflowJob activeRunner;
     private StepAdapterFactory adapterFactory;
+    private IPropertySheetPage propertySheetPage;
 
     @Override
     public void createPartControl(Composite parent) {
@@ -596,6 +604,18 @@ public class AutomationView extends ViewPart {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
+    public <T> T getAdapter(Class<T> adapter) {
+        if (adapter == IPropertySheetPage.class) {
+            if (propertySheetPage == null) {
+                propertySheetPage = new AutoExpandPropertySheetPage();
+            }
+            return (T) propertySheetPage;
+        }
+        return super.getAdapter(adapter);
+    }
+
+    @Override
     public void dispose() {
         getSite().getPage().removePartListener(partListener);
         if (adapterFactory != null) Platform.getAdapterManager().unregisterAdapters(adapterFactory);
@@ -606,5 +626,18 @@ public class AutomationView extends ViewPart {
     @Override
     public void setFocus() {
         if (viewer != null) viewer.getControl().setFocus();
+    }
+
+    private static final class AutoExpandPropertySheetPage extends PropertySheetPage {
+        @Override
+        public void selectionChanged(IWorkbenchPart part, ISelection selection) {
+            super.selectionChanged(part, selection);
+            Control control = getControl();
+            if (control instanceof Tree tree && !tree.isDisposed()) {
+                for (TreeItem item : tree.getItems()) {
+                    item.setExpanded(true);
+                }
+            }
+        }
     }
 }
