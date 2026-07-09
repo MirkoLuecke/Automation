@@ -227,13 +227,7 @@ public class AutomationView extends ViewPart {
 
         viewer.addSelectionChangedListener(e -> updateButtonStates());
 
-        viewer.addDoubleClickListener(e -> {
-            try {
-                getSite().getPage().showView("org.eclipse.ui.views.PropertySheet");
-            } catch (PartInitException ex) {
-                Platform.getLog(getClass()).error("Failed to show Properties view", ex);
-            }
-        });
+        viewer.addDoubleClickListener(e -> showPropertiesView());
 
         viewer.getTable().addKeyListener(new KeyAdapter() {
             @Override
@@ -363,6 +357,9 @@ public class AutomationView extends ViewPart {
                 currentWorkflow = w;
                 viewer.setInput(currentWorkflow.getSteps());
                 updateHeader();
+                AutomationPreferences.store().setValue(
+                    AutomationPreferences.KEY_LAST_WORKFLOW_ID,
+                    w.getWorkflowId());
             });
         updateButtonStates();
     }
@@ -392,9 +389,12 @@ public class AutomationView extends ViewPart {
             } else {
                 currentWorkflow.getSteps().add(lastIdx + 1, step);
             }
+            int insertedAt = lastIdx < 0 ? currentWorkflow.getSteps().size() - 1 : lastIdx + 1;
             save();
             viewer.refresh();
+            viewer.getTable().setSelection(new int[]{insertedAt});
             updateButtonStates();
+            showPropertiesView();
         }
     }
 
@@ -473,6 +473,7 @@ public class AutomationView extends ViewPart {
         for (int i = 0; i < toPaste.size(); i++) newSel[i] = insertAt + i;
         viewer.getTable().setSelection(newSel);
         updateButtonStates();
+        showPropertiesView();
     }
 
     private List<Step> clipboardSteps() {
@@ -585,6 +586,14 @@ public class AutomationView extends ViewPart {
             repository().save(currentWorkflow);
         } catch (Exception e) {
             Platform.getLog(getClass()).error("Failed to save workflow", e);
+        }
+    }
+
+    private void showPropertiesView() {
+        try {
+            getSite().getPage().showView("org.eclipse.ui.views.PropertySheet");
+        } catch (PartInitException ex) {
+            Platform.getLog(getClass()).error("Failed to show Properties view", ex);
         }
     }
 
