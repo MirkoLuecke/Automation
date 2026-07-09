@@ -22,8 +22,13 @@ import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.jface.viewers.TableViewerColumn;
 import org.eclipse.jface.window.Window;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.dnd.Clipboard;
+import org.eclipse.swt.dnd.TextTransfer;
+import org.eclipse.swt.dnd.Transfer;
 import org.eclipse.swt.events.ControlAdapter;
 import org.eclipse.swt.events.ControlEvent;
+import org.eclipse.swt.events.KeyAdapter;
+import org.eclipse.swt.events.KeyEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
@@ -32,7 +37,9 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.ToolBar;
 import org.eclipse.swt.widgets.ToolItem;
+import org.eclipse.ui.IPartListener2;
 import org.eclipse.ui.ISharedImages;
+import org.eclipse.ui.IWorkbenchPartReference;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.console.ConsolePlugin;
@@ -48,6 +55,9 @@ import com.example.automation.model.Step;
 import com.example.automation.model.StepStatus;
 import com.example.automation.model.Workflow;
 import com.example.automation.persistence.WorkflowRepository;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 /**
  * Eclipse view (ID: {@value #ID}) that displays and runs automation workflows.
@@ -68,8 +78,17 @@ public class AutomationView extends ViewPart {
     private Workflow currentWorkflow;
 
     private ToolItem newWorkflowItem, editWorkflowItem, openWorkflowItem;
-    private ToolItem addStepItem, deleteStepItem, moveUpItem, moveDownItem, duplicateStepItem;
+    private ToolItem addStepItem, deleteStepItem, moveUpItem, moveDownItem;
+    private ToolItem copyStepItem, pasteStepItem;
     private ToolItem runItem, runSelectedItem, stopItem;
+
+    private final Gson gson = new GsonBuilder().create();
+    private final IPartListener2 partListener = new IPartListener2() {
+        @Override
+        public void partActivated(IWorkbenchPartReference ref) {
+            if (ref.getPart(false) == AutomationView.this) updateButtonStates();
+        }
+    };
 
     private WorkflowJob activeRunner;
     private StepAdapterFactory adapterFactory;
@@ -85,6 +104,7 @@ public class AutomationView extends ViewPart {
         getSite().setSelectionProvider(viewer);
         adapterFactory = new StepAdapterFactory(() -> { save(); viewer.refresh(); });
         Platform.getAdapterManager().registerAdapters(adapterFactory, Step.class);
+        getSite().getPage().addPartListener(partListener);
     }
 
     private void createHeader(Composite parent) {
@@ -144,9 +164,12 @@ public class AutomationView extends ViewPart {
         moveDownItem = makeButton(bar, "Move Step Down",
             Activator.getDefault().getImageRegistry().get(Activator.IMG_DOWN_NAV),
             SelectionListener.widgetSelectedAdapter(e -> onMoveDown()));
-        duplicateStepItem = makeButton(bar, "Duplicate Step",
+        copyStepItem = makeButton(bar, "Copy Step(s)",
             shared.getImage(ISharedImages.IMG_TOOL_COPY),
-            SelectionListener.widgetSelectedAdapter(e -> onDuplicate()));
+            SelectionListener.widgetSelectedAdapter(e -> onCopy()));
+        pasteStepItem = makeButton(bar, "Paste Step(s)",
+            shared.getImage(ISharedImages.IMG_TOOL_PASTE),
+            SelectionListener.widgetSelectedAdapter(e -> onPaste()));
 
         new ToolItem(bar, SWT.SEPARATOR);
 
@@ -208,6 +231,16 @@ public class AutomationView extends ViewPart {
                 getSite().getPage().showView("org.eclipse.ui.views.PropertySheet");
             } catch (PartInitException ex) {
                 Platform.getLog(getClass()).error("Failed to show Properties view", ex);
+            }
+        });
+
+        viewer.getTable().addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if ((e.stateMask & SWT.CTRL) != 0) {
+                    if (e.keyCode == 'c') onCopy();
+                    else if (e.keyCode == 'v') onPaste();
+                }
             }
         });
     }
@@ -286,7 +319,8 @@ public class AutomationView extends ViewPart {
             && selIndices.length > 0 && selIndices[0] > 0);
         moveDownItem.setEnabled(!running && contiguous
             && selIndices.length > 0 && selIndices[selIndices.length - 1] < stepCount - 1);
-        duplicateStepItem.setEnabled(!running && contiguous && selIndices.length > 0);
+        copyStepItem.setEnabled(!running && hasStep);
+        pasteStepItem.setEnabled(!running && hasWorkflow && clipboardSteps() != null);
         runItem.setEnabled(!running && hasWorkflow && stepCount > 0);
         runSelectedItem.setEnabled(!running && hasStep);
         stopItem.setEnabled(running);
@@ -397,21 +431,54 @@ public class AutomationView extends ViewPart {
         updateButtonStates();
     }
 
-    private void onDuplicate() {
+    private void onCopy() {
         if (currentWorkflow == null) return;
-        List<Step> steps = currentWorkflow.getSteps();
+        List<Step> allSteps = currentWorkflow.getSteps();
         int[] indices = viewer.getTable().getSelectionIndices();
-        if (!StepOperations.isContiguous(indices)) return;
-        List<Step> copies = new ArrayList<>();
-        for (int idx : indices) copies.add(StepOperations.deepCopy(steps.get(idx)));
-        int insertAt = lastSelectedIndex() + 1;
-        steps.addAll(insertAt, copies);
+        if (indices.length == 0) return;
+        Arrays.sort(indices);
+        List<Step> selected = new ArrayList<>();
+        for (int idx : indices) selected.add(allSteps.get(idx));
+        String json = gson.toJson(selected);
+        Clipboard cb = new Clipboard(viewer.getControl().getDisplay());
+        try {
+            cb.setContents(new Object[]{json}, new Transfer[]{TextTransfer.getInstance()});
+        } finally {
+            cb.dispose();
+        }
+        updateButtonStates();
+    }
+
+    private void onPaste() {
+        if (currentWorkflow == null) return;
+        List<Step> toPaste = clipboardSteps();
+        if (toPaste == null) return;
+        int lastIdx = lastSelectedIndex();
+        int insertAt = lastIdx < 0 ? currentWorkflow.getSteps().size() : lastIdx + 1;
+        currentWorkflow.getSteps().addAll(insertAt, toPaste);
         save();
         viewer.refresh();
-        int[] newSel = new int[copies.size()];
-        for (int i = 0; i < copies.size(); i++) newSel[i] = insertAt + i;
+        int[] newSel = new int[toPaste.size()];
+        for (int i = 0; i < toPaste.size(); i++) newSel[i] = insertAt + i;
         viewer.getTable().setSelection(newSel);
         updateButtonStates();
+    }
+
+    private List<Step> clipboardSteps() {
+        Clipboard cb = new Clipboard(viewer.getControl().getDisplay());
+        try {
+            String text = (String) cb.getContents(TextTransfer.getInstance());
+            if (text == null) return null;
+            try {
+                java.lang.reflect.Type type = new TypeToken<List<Step>>(){}.getType();
+                List<Step> steps = gson.fromJson(text, type);
+                return (steps != null && !steps.isEmpty()) ? steps : null;
+            } catch (Exception e) {
+                return null;
+            }
+        } finally {
+            cb.dispose();
+        }
     }
 
     /** Returns the highest selected row index, or -1 if nothing is selected. */
@@ -512,6 +579,7 @@ public class AutomationView extends ViewPart {
 
     @Override
     public void dispose() {
+        getSite().getPage().removePartListener(partListener);
         if (adapterFactory != null) Platform.getAdapterManager().unregisterAdapters(adapterFactory);
         if (activeRunner != null) activeRunner.cancel();
         super.dispose();
