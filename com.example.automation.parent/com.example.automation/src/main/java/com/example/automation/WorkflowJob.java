@@ -14,7 +14,9 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.core.runtime.jobs.JobChangeAdapter;
 import org.eclipse.core.variables.IStringVariableManager;
 import org.eclipse.core.variables.VariablesPlugin;
 
@@ -36,8 +38,6 @@ public class WorkflowJob extends Job {
     private final PrintStream stdout;
     private final PrintStream stderr;
 
-    private volatile Thread runThread;
-
     public WorkflowJob(String workflowName,
                        List<Step> steps,
                        ActionRegistry registry,
@@ -56,24 +56,13 @@ public class WorkflowJob extends Job {
         this.stdout       = stdout instanceof PrintStream ps ? ps : new PrintStream(stdout);
         this.stderr       = stderr instanceof PrintStream ps ? ps : new PrintStream(stderr);
         setRule(null);
-    }
-
-    @Override
-    public boolean cancel() {
-        boolean result = super.cancel();
-        Thread t = runThread;
-        if (t != null) t.interrupt();
-        return result;
-    }
-
-    @Override
-    protected void done(IStatus result) {
-        uiExec.accept(onDone);
+        addJobChangeListener(new JobChangeAdapter() {
+            @Override public void done(IJobChangeEvent event) { uiExec.accept(onDone); }
+        });
     }
 
     @Override
     protected IStatus run(IProgressMonitor monitor) {
-        runThread = Thread.currentThread();
         IStringVariableManager svm = VariablesPlugin.getDefault().getStringVariableManager();
         String workingDir = resolveWorkingDir(svm);
 
@@ -116,9 +105,9 @@ public class WorkflowJob extends Job {
             if (step.isRetryOnError()) {
                 monitor.subTask("Retrying " + (step.getName() != null ? step.getName() : step.getActionId())
                     + " in " + step.getRetryWaitSeconds() + "s…");
-                if (step.getRetryWaitSeconds() > 0) {
-                    try { Thread.sleep(step.getRetryWaitSeconds() * 1000L); }
-                    catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+                long deadline = System.currentTimeMillis() + step.getRetryWaitSeconds() * 1000L;
+                while (System.currentTimeMillis() < deadline && !monitor.isCanceled()) {
+                    try { Thread.sleep(100); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); break; }
                 }
                 action.execute(resolvedConfig, ctx);
             } else {
