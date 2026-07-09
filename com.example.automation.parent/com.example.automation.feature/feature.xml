@@ -2,7 +2,7 @@
 <feature
     id="com.example.automation.feature"
     label="Automation"
-    version="1.15.0.qualifier">
+    version="1.16.0.qualifier">
 
   <description>
     Adds an &quot;Automation&quot; item to the Project menu.

@@ -38,6 +38,7 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.ToolBar;
 import org.eclipse.swt.widgets.ToolItem;
@@ -634,11 +635,21 @@ public class AutomationView extends ViewPart {
             super.selectionChanged(part, selection);
             Control control = getControl();
             if (control != null && !control.isDisposed()) {
+                // asyncExec so PropertySheetViewer's own tree update finishes first.
+                // Then fire SWT.Expand on each collapsed category before setExpanded(true)
+                // so the page's SWT.Expand listener populates real child rows — without
+                // this, the listener never fires and the item opens showing only the dummy
+                // placeholder child (visible as an empty line).
                 control.getDisplay().asyncExec(() -> {
                     if (control.isDisposed()) return;
                     if (control instanceof Tree tree) {
                         for (TreeItem item : tree.getItems()) {
-                            item.setExpanded(true);
+                            if (!item.getExpanded()) {
+                                Event expandEvent = new Event();
+                                expandEvent.item = item;
+                                tree.notifyListeners(SWT.Expand, expandEvent);
+                                item.setExpanded(true);
+                            }
                         }
                     }
                 });
