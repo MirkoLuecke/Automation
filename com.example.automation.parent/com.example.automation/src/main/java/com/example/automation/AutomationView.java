@@ -19,6 +19,7 @@ import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.resource.JFaceResources;
 import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.IStructuredSelection;
+import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.jface.viewers.TableViewerColumn;
 import org.eclipse.jface.window.Window;
@@ -389,10 +390,9 @@ public class AutomationView extends ViewPart {
             } else {
                 currentWorkflow.getSteps().add(lastIdx + 1, step);
             }
-            int insertedAt = lastIdx < 0 ? currentWorkflow.getSteps().size() - 1 : lastIdx + 1;
             save();
             viewer.refresh();
-            viewer.getTable().setSelection(new int[]{insertedAt});
+            viewer.setSelection(new StructuredSelection(step), true);
             updateButtonStates();
             showPropertiesView();
         }
@@ -469,9 +469,7 @@ public class AutomationView extends ViewPart {
         currentWorkflow.getSteps().addAll(insertAt, toPaste);
         save();
         viewer.refresh();
-        int[] newSel = new int[toPaste.size()];
-        for (int i = 0; i < toPaste.size(); i++) newSel[i] = insertAt + i;
-        viewer.getTable().setSelection(newSel);
+        viewer.setSelection(new StructuredSelection(toPaste), true);
         updateButtonStates();
         showPropertiesView();
     }
