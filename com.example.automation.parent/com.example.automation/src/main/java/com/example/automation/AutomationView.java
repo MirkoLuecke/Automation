@@ -633,10 +633,15 @@ public class AutomationView extends ViewPart {
         public void selectionChanged(IWorkbenchPart part, ISelection selection) {
             super.selectionChanged(part, selection);
             Control control = getControl();
-            if (control instanceof Tree tree && !tree.isDisposed()) {
-                for (TreeItem item : tree.getItems()) {
-                    item.setExpanded(true);
-                }
+            if (control != null && !control.isDisposed()) {
+                control.getDisplay().asyncExec(() -> {
+                    if (control.isDisposed()) return;
+                    if (control instanceof Tree tree) {
+                        for (TreeItem item : tree.getItems()) {
+                            item.setExpanded(true);
+                        }
+                    }
+                });
             }
         }
     }
