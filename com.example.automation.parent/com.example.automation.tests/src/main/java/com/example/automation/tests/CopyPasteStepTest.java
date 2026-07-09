@@ -86,7 +86,7 @@ public class CopyPasteStepTest {
     }
 
     @Test
-    public void pasteButton_disabledWhenClipboardEmpty() {
+    public void pasteButton_disabledWhenClipboardHasInvalidJson() {
         setClipboard("not json");
         SWTBotTable table = bot.viewById("com.example.automation.view").bot().table();
         table.click(0, 1);

@@ -1,6 +1,7 @@
 package com.example.automation;
 
 import java.io.File;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -470,7 +471,7 @@ public class AutomationView extends ViewPart {
             String text = (String) cb.getContents(TextTransfer.getInstance());
             if (text == null) return null;
             try {
-                java.lang.reflect.Type type = new TypeToken<List<Step>>(){}.getType();
+                Type type = new TypeToken<List<Step>>(){}.getType();
                 List<Step> steps = gson.fromJson(text, type);
                 return (steps != null && !steps.isEmpty()) ? steps : null;
             } catch (Exception e) {
