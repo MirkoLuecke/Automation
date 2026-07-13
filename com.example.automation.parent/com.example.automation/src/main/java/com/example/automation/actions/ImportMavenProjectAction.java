@@ -65,12 +65,14 @@ public class ImportMavenProjectAction implements IAction {
 
         context.setProgress(0);
         // Warm up M2E's Plexus container before calling importProjects().
-        // getLocalRepository() only loads RepositorySystem; createExecutionRequest()
-        // additionally loads MavenExecutionRequestPopulator, which is also needed by
-        // the Maven Project Builder that Eclipse schedules after import. Without this,
-        // a "could not lookup required component" error appears the first time M2E
-        // infrastructure is used in a session.
-        MavenPlugin.getMaven().createExecutionRequest(new NullProgressMonitor());
+        // execute() creates a full MavenExecutionRequest via MavenExecutionRequestPopulator,
+        // loading it into the Plexus container so the Maven Project Builder (which Eclipse
+        // schedules after import) can find it. Without this, the first time M2E infrastructure
+        // is used in a session, a "could not lookup required component" error appears.
+        MavenPlugin.getMaven().execute((ctx, mon) -> {
+            ctx.getExecutionRequest();
+            return null;
+        }, new NullProgressMonitor());
         LocalProjectScanner scanner = new LocalProjectScanner(
             List.of(pomFile.getParentFile().getAbsolutePath()),
             false,

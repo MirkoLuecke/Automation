@@ -55,7 +55,10 @@ public class MavenUpdateProjectAction implements IAction {
         context.setProgress(0);
         // Ensure MavenExecutionRequestPopulator and other Plexus components are loaded
         // before updateProjectConfiguration() needs them. Same race as importProjects().
-        MavenPlugin.getMaven().createExecutionRequest(new NullProgressMonitor());
+        MavenPlugin.getMaven().execute((ctx, mon) -> {
+            ctx.getExecutionRequest();
+            return null;
+        }, new NullProgressMonitor());
         MavenPlugin.getProjectConfigurationManager().updateProjectConfiguration(
             new MavenUpdateRequest(project, false, false),
             new NullProgressMonitor());
