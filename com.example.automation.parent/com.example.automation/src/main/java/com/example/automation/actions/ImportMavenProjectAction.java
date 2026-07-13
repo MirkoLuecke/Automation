@@ -118,16 +118,20 @@ public class ImportMavenProjectAction implements IAction {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        ResourcesPlugin.getWorkspace().getRoot().refreshLocal(IResource.DEPTH_INFINITE, null);
-        // Pre-initialize per-project Plexus containers on this thread so the Maven Project
-        // Builder (FAMILY_AUTO_BUILD) reuses cached containers where MavenExecutionRequestPopulator
-        // is registered, instead of creating new ones on job threads where lookup fails.
+        // Refresh the workspace and pre-warm per-project Plexus containers inside a workspace
+        // operation that holds the workspace root scheduling rule. Auto-build (MavenProjectBuilder)
+        // also needs the workspace root rule, so it cannot start for any project until this
+        // run() releases it — guaranteeing all containers are initialized before MavenBuilder
+        // runs and before it calls lookup(MavenExecutionRequestPopulator).
         IPath importRoot = org.eclipse.core.runtime.Path.fromOSString(pomFile.getParentFile().getAbsolutePath());
-        for (IMavenProjectFacade facade : MavenPlugin.getMavenProjectRegistry().getProjects()) {
-            IPath loc = facade.getProject().getLocation();
-            if (loc != null && importRoot.isPrefixOf(loc))
-                facade.getComponentLookup();
-        }
+        ResourcesPlugin.getWorkspace().run(mon -> {
+            ResourcesPlugin.getWorkspace().getRoot().refreshLocal(IResource.DEPTH_INFINITE, null);
+            for (IMavenProjectFacade facade : MavenPlugin.getMavenProjectRegistry().getProjects()) {
+                IPath loc = facade.getProject().getLocation();
+                if (loc != null && importRoot.isPrefixOf(loc))
+                    facade.getComponentLookup();
+            }
+        }, ResourcesPlugin.getWorkspace().getRoot(), 0, new NullProgressMonitor());
         // Wait for Eclipse's automatic build (Maven Project Builder runs after M2E configures projects).
         try {
             jm.join(ResourcesPlugin.FAMILY_AUTO_BUILD, null);
