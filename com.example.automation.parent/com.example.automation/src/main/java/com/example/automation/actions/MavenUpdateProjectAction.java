@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.NullProgressMonitor;
@@ -85,8 +86,13 @@ public class MavenUpdateProjectAction implements IAction {
         context.getStdout().println("Updating " + toUpdate.size() + " Maven project(s).");
         // updateProjectConfiguration(MavenUpdateRequest, IProgressMonitor) only accepts
         // a request with exactly one project; call per-project to update all sub-modules.
-        for (IProject p : toUpdate)
-            MavenPlugin.getProjectConfigurationManager().updateProjectConfiguration(p, new NullProgressMonitor());
+        // Wrap in AVOID_UPDATE to suppress MavenProjectBuilder auto-builds between
+        // individual calls — without it, builds race on the M2E mutable project registry
+        // and throw StaleMutableProjectRegistryException as an unhandled error dialog.
+        ResourcesPlugin.getWorkspace().run(mon -> {
+            for (IProject p : toUpdate)
+                MavenPlugin.getProjectConfigurationManager().updateProjectConfiguration(p, new NullProgressMonitor());
+        }, null, IWorkspace.AVOID_UPDATE, new NullProgressMonitor());
         IJobManager jm = Job.getJobManager();
         try {
             jm.join(MavenPlugin.getProjectConfigurationManager(), null);
