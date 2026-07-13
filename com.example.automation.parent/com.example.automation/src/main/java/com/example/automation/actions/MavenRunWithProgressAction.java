@@ -13,6 +13,9 @@ import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import org.eclipse.core.resources.IWorkspaceDescription;
+import org.eclipse.core.resources.ResourcesPlugin;
+
 import com.example.automation.EclipseVariables;
 import com.example.automation.api.IAction;
 import com.example.automation.api.IActionContext;
@@ -61,41 +64,59 @@ public class MavenRunWithProgressAction implements IAction {
         ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.directory(dir);
         context.setProgress(0);
-        Process process = pb.start();
 
-        MavenProgressParser parser = new MavenProgressParser();
-        boolean[] buildFailed = {false};
+        // Disable Eclipse auto-build for the duration of the Maven run.
+        // Maven writes/deletes files in target/ as an external process; Eclipse's
+        // file-system watcher would otherwise trigger the Java Builder concurrently,
+        // causing "Errors running builder 'Java Builder'" from file-level conflicts.
+        IWorkspaceDescription wsDesc = ResourcesPlugin.getWorkspace().getDescription();
+        boolean wasAutoBuilding = wsDesc.isAutoBuilding();
+        if (wasAutoBuilding) {
+            wsDesc.setAutoBuilding(false);
+            ResourcesPlugin.getWorkspace().setDescription(wsDesc);
+        }
+        try {
+            Process process = pb.start();
 
-        Thread stdoutThread = new Thread(() -> {
-            try {
-                processOutputStream(process.getInputStream(), context, parser, buildFailed);
-            } catch (IOException ignored) {}
-        });
+            MavenProgressParser parser = new MavenProgressParser();
+            boolean[] buildFailed = {false};
 
-        Thread stderrThread = new Thread(() -> {
-            try { process.getErrorStream().transferTo(context.getErrorStream()); }
-            catch (IOException ignored) {}
-        });
+            Thread stdoutThread = new Thread(() -> {
+                try {
+                    processOutputStream(process.getInputStream(), context, parser, buildFailed);
+                } catch (IOException ignored) {}
+            });
 
-        stdoutThread.setDaemon(true);
-        stderrThread.setDaemon(true);
-        stdoutThread.start();
-        stderrThread.start();
+            Thread stderrThread = new Thread(() -> {
+                try { process.getErrorStream().transferTo(context.getErrorStream()); }
+                catch (IOException ignored) {}
+            });
 
-        while (!process.waitFor(100, TimeUnit.MILLISECONDS)) {
-            if (context.isCancelled()) {
-                process.destroyForcibly();
-                stdoutThread.join();
-                stderrThread.join();
-                return;
+            stdoutThread.setDaemon(true);
+            stderrThread.setDaemon(true);
+            stdoutThread.start();
+            stderrThread.start();
+
+            while (!process.waitFor(100, TimeUnit.MILLISECONDS)) {
+                if (context.isCancelled()) {
+                    process.destroyForcibly();
+                    stdoutThread.join();
+                    stderrThread.join();
+                    return;
+                }
+            }
+            stdoutThread.join();
+            stderrThread.join();
+
+            if (buildFailed[0]) throw new Exception("Maven build failed.");
+            int exit = process.exitValue();
+            if (exit != 0) throw new Exception("mvn exited with code " + exit);
+        } finally {
+            if (wasAutoBuilding) {
+                wsDesc.setAutoBuilding(true);
+                ResourcesPlugin.getWorkspace().setDescription(wsDesc);
             }
         }
-        stdoutThread.join();
-        stderrThread.join();
-
-        if (buildFailed[0]) throw new Exception("Maven build failed.");
-        int exit = process.exitValue();
-        if (exit != 0) throw new Exception("mvn exited with code " + exit);
         context.setProgress(100);
     }
 
