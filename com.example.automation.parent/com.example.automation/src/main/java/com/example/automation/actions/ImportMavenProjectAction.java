@@ -9,6 +9,7 @@ import java.util.Queue;
 
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspace;
+import org.eclipse.core.resources.IWorkspaceDescription;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -93,46 +94,73 @@ public class ImportMavenProjectAction implements IAction {
                 queue.addAll(info.getProjects());
         }
         context.getStdout().println("Discovered " + allModules.size() + " Maven project(s) to import.");
-        deleteTargetDirs(pomFile.getParentFile(), context);
-        // Sync the Eclipse workspace resource tree with the filesystem so that
-        // deleted target/ folders are no longer registered as IResources.
-        // Without this, M2EUtils.createFolder() → IFolder.create() throws
-        // "resource already exists" for projects that were previously imported.
-        ResourcesPlugin.getWorkspace().getRoot().refreshLocal(IResource.DEPTH_INFINITE, null);
-        // Wrap in AVOID_UPDATE so that creating 77 projects fires ONE batched resource-change
-        // notification after importProjects returns rather than one per project. Without this,
-        // ProjectRegistryRefreshJob is triggered for each project independently and the
-        // concurrent runs race on the mutable project registry, producing "Unable to update
-        // maven configuration" error dialogs.
-        ResourcesPlugin.getWorkspace().run(
-            mon -> MavenPlugin.getProjectConfigurationManager().importProjects(
-                allModules,
-                new ProjectImportConfiguration(),
-                new ImportMonitor(context, allModules.size())),
-            null, IWorkspace.AVOID_UPDATE, new NullProgressMonitor());
-        // Wait for M2E background project-configuration jobs (UpdateProjectJob)
-        // These are scheduled inside importProjects() and run after it returns.
+        // Disable auto-build before any file operations that could trigger builders.
+        // importProjects() schedules an UpdateProjectJob per module; as each job completes
+        // it fires resource-change events that schedule "Invoking Maven Project Builder" jobs
+        // in parallel — before Plexus containers are pre-warmed — causing TextFileChange
+        // NoClassDefFoundError. Disable first (then drain), do all work with auto-build off,
+        // restore in finally so the one clean post-prewarm build runs after everything is ready.
         IJobManager jm = Job.getJobManager();
+        IWorkspaceDescription wsDesc = ResourcesPlugin.getWorkspace().getDescription();
+        boolean wasAutoBuilding = wsDesc.isAutoBuilding();
+        if (wasAutoBuilding) {
+            wsDesc.setAutoBuilding(false);
+            ResourcesPlugin.getWorkspace().setDescription(wsDesc);
+        }
         try {
-            jm.join(MavenPlugin.getProjectConfigurationManager(), new BackgroundMonitor(context));
+            jm.join(ResourcesPlugin.FAMILY_AUTO_BUILD, null);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        // Refresh the workspace and pre-warm per-project Plexus containers inside a workspace
-        // operation that holds the workspace root scheduling rule. Auto-build (MavenProjectBuilder)
-        // also needs the workspace root rule, so it cannot start for any project until this
-        // run() releases it — guaranteeing all containers are initialized before MavenBuilder
-        // runs and before it calls lookup(MavenExecutionRequestPopulator).
-        IPath importRoot = org.eclipse.core.runtime.Path.fromOSString(pomFile.getParentFile().getAbsolutePath());
-        ResourcesPlugin.getWorkspace().run(mon -> {
+        try {
+            deleteTargetDirs(pomFile.getParentFile(), context);
+            // Sync the Eclipse workspace resource tree with the filesystem so that
+            // deleted target/ folders are no longer registered as IResources.
+            // Without this, M2EUtils.createFolder() → IFolder.create() throws
+            // "resource already exists" for projects that were previously imported.
             ResourcesPlugin.getWorkspace().getRoot().refreshLocal(IResource.DEPTH_INFINITE, null);
-            for (IMavenProjectFacade facade : MavenPlugin.getMavenProjectRegistry().getProjects()) {
-                IPath loc = facade.getProject().getLocation();
-                if (loc != null && importRoot.isPrefixOf(loc))
-                    facade.getComponentLookup();
+            // Wrap in AVOID_UPDATE so that creating 77 projects fires ONE batched resource-change
+            // notification after importProjects returns rather than one per project. Without this,
+            // ProjectRegistryRefreshJob is triggered for each project independently and the
+            // concurrent runs race on the mutable project registry, producing "Unable to update
+            // maven configuration" error dialogs.
+            ResourcesPlugin.getWorkspace().run(
+                mon -> MavenPlugin.getProjectConfigurationManager().importProjects(
+                    allModules,
+                    new ProjectImportConfiguration(),
+                    new ImportMonitor(context, allModules.size())),
+                null, IWorkspace.AVOID_UPDATE, new NullProgressMonitor());
+            // Wait for M2E background project-configuration jobs (UpdateProjectJob).
+            // These are scheduled inside importProjects() and run after it returns.
+            // Auto-build is disabled so their resource-change events do not trigger builders.
+            try {
+                jm.join(MavenPlugin.getProjectConfigurationManager(), new BackgroundMonitor(context));
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
-        }, ResourcesPlugin.getWorkspace().getRoot(), 0, new NullProgressMonitor());
-        // Wait for Eclipse's automatic build (Maven Project Builder runs after M2E configures projects).
+            // Refresh the workspace and pre-warm per-project Plexus containers inside a workspace
+            // operation that holds the workspace root scheduling rule. Auto-build (MavenProjectBuilder)
+            // also needs the workspace root rule, so it cannot start for any project until this
+            // run() releases it — guaranteeing all containers are initialized before MavenBuilder
+            // runs and before it calls lookup(MavenExecutionRequestPopulator).
+            IPath importRoot = org.eclipse.core.runtime.Path.fromOSString(pomFile.getParentFile().getAbsolutePath());
+            ResourcesPlugin.getWorkspace().run(mon -> {
+                ResourcesPlugin.getWorkspace().getRoot().refreshLocal(IResource.DEPTH_INFINITE, null);
+                for (IMavenProjectFacade facade : MavenPlugin.getMavenProjectRegistry().getProjects()) {
+                    IPath loc = facade.getProject().getLocation();
+                    if (loc != null && importRoot.isPrefixOf(loc))
+                        facade.getComponentLookup();
+                }
+            }, ResourcesPlugin.getWorkspace().getRoot(), 0, new NullProgressMonitor());
+        } finally {
+            if (wasAutoBuilding) {
+                IWorkspaceDescription freshDesc = ResourcesPlugin.getWorkspace().getDescription();
+                freshDesc.setAutoBuilding(true);
+                ResourcesPlugin.getWorkspace().setDescription(freshDesc);
+            }
+        }
+        // Wait for Eclipse's automatic build. Now that auto-build is restored and all projects
+        // are fully configured with warm Plexus containers, this one build runs cleanly.
         try {
             jm.join(ResourcesPlugin.FAMILY_AUTO_BUILD, null);
         } catch (InterruptedException e) {
