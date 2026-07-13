@@ -93,6 +93,11 @@ public class ImportMavenProjectAction implements IAction {
         }
         context.getStdout().println("Discovered " + allModules.size() + " Maven project(s) to import.");
         deleteTargetDirs(pomFile.getParentFile(), context);
+        // Sync the Eclipse workspace resource tree with the filesystem so that
+        // deleted target/ folders are no longer registered as IResources.
+        // Without this, M2EUtils.createFolder() → IFolder.create() throws
+        // "resource already exists" for projects that were previously imported.
+        ResourcesPlugin.getWorkspace().getRoot().refreshLocal(IResource.DEPTH_INFINITE, null);
         MavenPlugin.getProjectConfigurationManager().importProjects(
             allModules,
             new ProjectImportConfiguration(),
