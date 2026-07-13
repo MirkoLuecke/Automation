@@ -7,11 +7,13 @@ import java.util.Map;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.jobs.IJobManager;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.m2e.core.MavenPlugin;
+import org.eclipse.m2e.core.project.IMavenProjectFacade;
 import org.eclipse.m2e.core.project.MavenUpdateRequest;
 import org.osgi.framework.Bundle;
 
@@ -20,9 +22,11 @@ import com.example.automation.api.IActionContext;
 
 /**
  * {@link com.example.automation.api.IAction} that triggers
- * <em>Maven &gt; Update Project</em> on a named Eclipse workspace project using M2E.
+ * <em>Maven &gt; Update Project</em> on a named Eclipse workspace project and all of
+ * its Maven sub-modules, matching the Eclipse UI dialog which pre-selects every project
+ * whose location is inside the named project's directory.
  *
- * <p>Config keys: {@code projectName} (required).
+ * <p>Config keys: {@code projectName} (required — name of the root/parent project).
  */
 public class MavenUpdateProjectAction implements IAction {
 
@@ -61,8 +65,19 @@ public class MavenUpdateProjectAction implements IAction {
             ctx.getExecutionRequest();
             return null;
         }, new NullProgressMonitor());
+        // Collect the root project and every Maven project whose disk location sits
+        // inside the root's directory — these are its sub-modules as Eclipse projects.
+        IPath rootLocation = project.getLocation();
+        List<IProject> toUpdate = new ArrayList<>();
+        for (IMavenProjectFacade facade : MavenPlugin.getMavenProjectRegistry().getProjects()) {
+            IPath loc = facade.getProject().getLocation();
+            if (loc != null && rootLocation != null && rootLocation.isPrefixOf(loc))
+                toUpdate.add(facade.getProject());
+        }
+        if (toUpdate.isEmpty()) toUpdate.add(project); // fallback: root only
+        context.getStdout().println("Updating " + toUpdate.size() + " Maven project(s).");
         MavenPlugin.getProjectConfigurationManager().updateProjectConfiguration(
-            new MavenUpdateRequest(project, false, false),
+            new MavenUpdateRequest(toUpdate, false, false),
             new NullProgressMonitor());
         IJobManager jm = Job.getJobManager();
         try {
