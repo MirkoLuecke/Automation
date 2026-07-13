@@ -7,6 +7,7 @@ import java.util.Map;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspace;
+import org.eclipse.core.resources.IWorkspaceDescription;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.NullProgressMonitor;
@@ -59,51 +60,71 @@ public class MavenUpdateProjectAction implements IAction {
             throw new Exception("Project not found in workspace: " + projectName);
 
         context.setProgress(0);
-        // Ensure MavenExecutionRequestPopulator and other Plexus components are loaded
-        // before updateProjectConfiguration() needs them. Same race as importProjects().
-        MavenPlugin.getMaven().execute((ctx, mon) -> {
-            ctx.getExecutionRequest();
-            return null;
-        }, new NullProgressMonitor());
-        // Collect the root project and every Maven project whose disk location sits
-        // inside the root's directory — these are its sub-modules as Eclipse projects.
-        IPath rootLocation = project.getLocation();
-        List<IProject> toUpdate = new ArrayList<>();
-        for (IMavenProjectFacade facade : MavenPlugin.getMavenProjectRegistry().getProjects()) {
-            IPath loc = facade.getProject().getLocation();
-            if (loc != null && rootLocation != null && rootLocation.isPrefixOf(loc))
-                toUpdate.add(facade.getProject());
-        }
-        if (toUpdate.isEmpty()) toUpdate.add(project); // fallback: root only
-        // Pre-initialize per-project Plexus containers on this thread (where OSGi classloading
-        // is fully set up) so the background Maven Builder reuses the cached container rather
-        // than creating one on a job thread where MavenExecutionRequestPopulator is missing.
-        for (IMavenProjectFacade facade : MavenPlugin.getMavenProjectRegistry().getProjects()) {
-            IPath loc = facade.getProject().getLocation();
-            if (loc != null && rootLocation != null && rootLocation.isPrefixOf(loc))
-                facade.getComponentLookup();
-        }
-        context.getStdout().println("Updating " + toUpdate.size() + " Maven project(s).");
-        // updateProjectConfiguration(MavenUpdateRequest, IProgressMonitor) only accepts
-        // a request with exactly one project; call per-project to update all sub-modules.
-        // Wrap in AVOID_UPDATE to suppress MavenProjectBuilder auto-builds between
-        // individual calls — without it, builds race on the M2E mutable project registry
-        // and throw StaleMutableProjectRegistryException as an unhandled error dialog.
-        ResourcesPlugin.getWorkspace().run(mon -> {
-            for (IProject p : toUpdate)
-                MavenPlugin.getProjectConfigurationManager().updateProjectConfiguration(p, new NullProgressMonitor());
-        }, null, IWorkspace.AVOID_UPDATE, new NullProgressMonitor());
         IJobManager jm = Job.getJobManager();
-        try {
-            jm.join(MavenPlugin.getProjectConfigurationManager(), null);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-        project.refreshLocal(IResource.DEPTH_INFINITE, null);
+        // Drain any auto-build jobs already in the queue before disabling auto-build.
+        // setAutoBuilding(false) only prevents NEW builds from being scheduled; jobs
+        // queued by a previous workflow step would still run and conflict with M2E's
+        // updateProjectConfiguration, causing TextFileChange NoClassDefFoundError.
         try {
             jm.join(ResourcesPlugin.FAMILY_AUTO_BUILD, null);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        }
+        // Disable Eclipse auto-build for the duration of the Maven Update Project run.
+        // updateProjectConfiguration triggers resource-change events that would otherwise
+        // schedule Java Builder jobs concurrently with M2E's own project reconfiguration.
+        IWorkspaceDescription wsDesc = ResourcesPlugin.getWorkspace().getDescription();
+        boolean wasAutoBuilding = wsDesc.isAutoBuilding();
+        if (wasAutoBuilding) {
+            wsDesc.setAutoBuilding(false);
+            ResourcesPlugin.getWorkspace().setDescription(wsDesc);
+        }
+        try {
+            // Ensure MavenExecutionRequestPopulator and other Plexus components are loaded
+            // before updateProjectConfiguration() needs them. Same race as importProjects().
+            MavenPlugin.getMaven().execute((ctx, mon) -> {
+                ctx.getExecutionRequest();
+                return null;
+            }, new NullProgressMonitor());
+            // Collect the root project and every Maven project whose disk location sits
+            // inside the root's directory — these are its sub-modules as Eclipse projects.
+            IPath rootLocation = project.getLocation();
+            List<IProject> toUpdate = new ArrayList<>();
+            for (IMavenProjectFacade facade : MavenPlugin.getMavenProjectRegistry().getProjects()) {
+                IPath loc = facade.getProject().getLocation();
+                if (loc != null && rootLocation != null && rootLocation.isPrefixOf(loc))
+                    toUpdate.add(facade.getProject());
+            }
+            if (toUpdate.isEmpty()) toUpdate.add(project); // fallback: root only
+            // Pre-initialize per-project Plexus containers on this thread (where OSGi classloading
+            // is fully set up) so the background Maven Builder reuses the cached container rather
+            // than creating one on a job thread where MavenExecutionRequestPopulator is missing.
+            for (IMavenProjectFacade facade : MavenPlugin.getMavenProjectRegistry().getProjects()) {
+                IPath loc = facade.getProject().getLocation();
+                if (loc != null && rootLocation != null && rootLocation.isPrefixOf(loc))
+                    facade.getComponentLookup();
+            }
+            context.getStdout().println("Updating " + toUpdate.size() + " Maven project(s).");
+            // updateProjectConfiguration(MavenUpdateRequest, IProgressMonitor) only accepts
+            // a request with exactly one project; call per-project to update all sub-modules.
+            // Wrap in AVOID_UPDATE to suppress MavenProjectBuilder auto-builds between
+            // individual calls — without it, builds race on the M2E mutable project registry
+            // and throw StaleMutableProjectRegistryException as an unhandled error dialog.
+            ResourcesPlugin.getWorkspace().run(mon -> {
+                for (IProject p : toUpdate)
+                    MavenPlugin.getProjectConfigurationManager().updateProjectConfiguration(p, new NullProgressMonitor());
+            }, null, IWorkspace.AVOID_UPDATE, new NullProgressMonitor());
+            try {
+                jm.join(MavenPlugin.getProjectConfigurationManager(), null);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            project.refreshLocal(IResource.DEPTH_INFINITE, null);
+        } finally {
+            if (wasAutoBuilding) {
+                wsDesc.setAutoBuilding(true);
+                ResourcesPlugin.getWorkspace().setDescription(wsDesc);
+            }
         }
         context.setProgress(100);
     }
