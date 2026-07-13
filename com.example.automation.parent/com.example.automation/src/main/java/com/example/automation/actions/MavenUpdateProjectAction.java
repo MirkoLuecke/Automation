@@ -14,7 +14,6 @@ import org.eclipse.core.runtime.jobs.IJobManager;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.m2e.core.MavenPlugin;
 import org.eclipse.m2e.core.project.IMavenProjectFacade;
-import org.eclipse.m2e.core.project.MavenUpdateRequest;
 import org.osgi.framework.Bundle;
 
 import com.example.automation.api.IAction;
@@ -84,9 +83,10 @@ public class MavenUpdateProjectAction implements IAction {
                 facade.getComponentLookup();
         }
         context.getStdout().println("Updating " + toUpdate.size() + " Maven project(s).");
-        MavenPlugin.getProjectConfigurationManager().updateProjectConfiguration(
-            new MavenUpdateRequest(toUpdate, false, false),
-            new NullProgressMonitor());
+        // updateProjectConfiguration(MavenUpdateRequest, IProgressMonitor) only accepts
+        // a request with exactly one project; call per-project to update all sub-modules.
+        for (IProject p : toUpdate)
+            MavenPlugin.getProjectConfigurationManager().updateProjectConfiguration(p, new NullProgressMonitor());
         IJobManager jm = Job.getJobManager();
         try {
             jm.join(MavenPlugin.getProjectConfigurationManager(), null);
