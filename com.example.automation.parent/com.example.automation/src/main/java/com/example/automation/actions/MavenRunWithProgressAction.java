@@ -15,6 +15,8 @@ import java.util.regex.Pattern;
 
 import org.eclipse.core.resources.IWorkspaceDescription;
 import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.jobs.IJobManager;
+import org.eclipse.core.runtime.jobs.Job;
 
 import com.example.automation.EclipseVariables;
 import com.example.automation.api.IAction;
@@ -65,6 +67,15 @@ public class MavenRunWithProgressAction implements IAction {
         pb.directory(dir);
         context.setProgress(0);
 
+        // Drain any auto-build jobs already in the queue before disabling auto-build.
+        // setAutoBuilding(false) only prevents NEW builds from being scheduled; jobs
+        // queued by a previous workflow step would still run and conflict with Maven.
+        IJobManager jm = Job.getJobManager();
+        try {
+            jm.join(ResourcesPlugin.FAMILY_AUTO_BUILD, null);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
         // Disable Eclipse auto-build for the duration of the Maven run.
         // Maven writes/deletes files in target/ as an external process; Eclipse's
         // file-system watcher would otherwise trigger the Java Builder concurrently,
