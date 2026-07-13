@@ -75,6 +75,14 @@ public class MavenUpdateProjectAction implements IAction {
                 toUpdate.add(facade.getProject());
         }
         if (toUpdate.isEmpty()) toUpdate.add(project); // fallback: root only
+        // Pre-initialize per-project Plexus containers on this thread (where OSGi classloading
+        // is fully set up) so the background Maven Builder reuses the cached container rather
+        // than creating one on a job thread where MavenExecutionRequestPopulator is missing.
+        for (IMavenProjectFacade facade : MavenPlugin.getMavenProjectRegistry().getProjects()) {
+            IPath loc = facade.getProject().getLocation();
+            if (loc != null && rootLocation != null && rootLocation.isPrefixOf(loc))
+                facade.getComponentLookup();
+        }
         context.getStdout().println("Updating " + toUpdate.size() + " Maven project(s).");
         MavenPlugin.getProjectConfigurationManager().updateProjectConfiguration(
             new MavenUpdateRequest(toUpdate, false, false),

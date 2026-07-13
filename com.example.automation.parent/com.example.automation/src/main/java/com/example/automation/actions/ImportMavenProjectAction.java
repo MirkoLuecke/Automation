@@ -9,12 +9,14 @@ import java.util.Queue;
 
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.jobs.IJobManager;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.m2e.core.MavenPlugin;
+import org.eclipse.m2e.core.project.IMavenProjectFacade;
 import org.eclipse.m2e.core.project.IProjectConfigurationManager;
 import org.eclipse.m2e.core.project.LocalProjectScanner;
 import org.eclipse.m2e.core.project.MavenProjectInfo;
@@ -104,6 +106,15 @@ public class ImportMavenProjectAction implements IAction {
             Thread.currentThread().interrupt();
         }
         ResourcesPlugin.getWorkspace().getRoot().refreshLocal(IResource.DEPTH_INFINITE, null);
+        // Pre-initialize per-project Plexus containers on this thread so the Maven Project
+        // Builder (FAMILY_AUTO_BUILD) reuses cached containers where MavenExecutionRequestPopulator
+        // is registered, instead of creating new ones on job threads where lookup fails.
+        IPath importRoot = org.eclipse.core.runtime.Path.fromOSString(pomFile.getParentFile().getAbsolutePath());
+        for (IMavenProjectFacade facade : MavenPlugin.getMavenProjectRegistry().getProjects()) {
+            IPath loc = facade.getProject().getLocation();
+            if (loc != null && importRoot.isPrefixOf(loc))
+                facade.getComponentLookup();
+        }
         // Wait for Eclipse's automatic build (Maven Project Builder runs after M2E configures projects).
         try {
             jm.join(ResourcesPlugin.FAMILY_AUTO_BUILD, null);
