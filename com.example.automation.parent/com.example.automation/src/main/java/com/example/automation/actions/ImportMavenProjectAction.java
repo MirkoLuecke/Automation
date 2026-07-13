@@ -64,10 +64,13 @@ public class ImportMavenProjectAction implements IAction {
             throw new Exception("pom.xml not found at: " + pomFile.getAbsolutePath());
 
         context.setProgress(0);
-        // Force M2E's Plexus container to fully initialize before calling importProjects().
-        // The container boots lazily; if importProjects() is the first call that needs it,
-        // it can race with initialization and throw "could not lookup required component".
-        MavenPlugin.getMaven().getLocalRepository();
+        // Warm up M2E's Plexus container before calling importProjects().
+        // getLocalRepository() only loads RepositorySystem; createExecutionRequest()
+        // additionally loads MavenExecutionRequestPopulator, which is also needed by
+        // the Maven Project Builder that Eclipse schedules after import. Without this,
+        // a "could not lookup required component" error appears the first time M2E
+        // infrastructure is used in a session.
+        MavenPlugin.getMaven().createExecutionRequest(new NullProgressMonitor());
         LocalProjectScanner scanner = new LocalProjectScanner(
             List.of(pomFile.getParentFile().getAbsolutePath()),
             false,
