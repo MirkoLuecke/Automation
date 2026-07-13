@@ -67,24 +67,23 @@ public class MavenRunWithProgressAction implements IAction {
         pb.directory(dir);
         context.setProgress(0);
 
-        // Drain any auto-build jobs already in the queue before disabling auto-build.
-        // setAutoBuilding(false) only prevents NEW builds from being scheduled; jobs
-        // queued by a previous workflow step would still run and conflict with Maven.
+        // Disable Eclipse auto-build for the duration of the Maven run first, then drain
+        // any jobs that were already scheduled before the disable took effect.
+        // Reversing this order (drain → disable) leaves a race window: new auto-build
+        // jobs can be scheduled between the join returning and setAutoBuilding(false)
+        // taking effect, causing "Errors running builder 'Java Builder'" from
+        // file-level conflicts while Maven writes/deletes files in target/.
         IJobManager jm = Job.getJobManager();
-        try {
-            jm.join(ResourcesPlugin.FAMILY_AUTO_BUILD, null);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-        // Disable Eclipse auto-build for the duration of the Maven run.
-        // Maven writes/deletes files in target/ as an external process; Eclipse's
-        // file-system watcher would otherwise trigger the Java Builder concurrently,
-        // causing "Errors running builder 'Java Builder'" from file-level conflicts.
         IWorkspaceDescription wsDesc = ResourcesPlugin.getWorkspace().getDescription();
         boolean wasAutoBuilding = wsDesc.isAutoBuilding();
         if (wasAutoBuilding) {
             wsDesc.setAutoBuilding(false);
             ResourcesPlugin.getWorkspace().setDescription(wsDesc);
+        }
+        try {
+            jm.join(ResourcesPlugin.FAMILY_AUTO_BUILD, null);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
         try {
             Process process = pb.start();
@@ -124,8 +123,9 @@ public class MavenRunWithProgressAction implements IAction {
             if (exit != 0) throw new Exception("mvn exited with code " + exit);
         } finally {
             if (wasAutoBuilding) {
-                wsDesc.setAutoBuilding(true);
-                ResourcesPlugin.getWorkspace().setDescription(wsDesc);
+                IWorkspaceDescription freshDesc = ResourcesPlugin.getWorkspace().getDescription();
+                freshDesc.setAutoBuilding(true);
+                ResourcesPlugin.getWorkspace().setDescription(freshDesc);
             }
         }
         context.setProgress(100);

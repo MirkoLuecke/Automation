@@ -61,23 +61,21 @@ public class MavenUpdateProjectAction implements IAction {
 
         context.setProgress(0);
         IJobManager jm = Job.getJobManager();
-        // Drain any auto-build jobs already in the queue before disabling auto-build.
-        // setAutoBuilding(false) only prevents NEW builds from being scheduled; jobs
-        // queued by a previous workflow step would still run and conflict with M2E's
-        // updateProjectConfiguration, causing TextFileChange NoClassDefFoundError.
-        try {
-            jm.join(ResourcesPlugin.FAMILY_AUTO_BUILD, null);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-        // Disable Eclipse auto-build for the duration of the Maven Update Project run.
-        // updateProjectConfiguration triggers resource-change events that would otherwise
-        // schedule Java Builder jobs concurrently with M2E's own project reconfiguration.
+        // Disable Eclipse auto-build first, then drain jobs already scheduled before the
+        // disable took effect. Reversing this order (drain → disable) leaves a race window:
+        // new auto-build jobs can be scheduled between the join returning and
+        // setAutoBuilding(false) taking effect, running concurrently with M2E's
+        // updateProjectConfiguration and causing TextFileChange NoClassDefFoundError.
         IWorkspaceDescription wsDesc = ResourcesPlugin.getWorkspace().getDescription();
         boolean wasAutoBuilding = wsDesc.isAutoBuilding();
         if (wasAutoBuilding) {
             wsDesc.setAutoBuilding(false);
             ResourcesPlugin.getWorkspace().setDescription(wsDesc);
+        }
+        try {
+            jm.join(ResourcesPlugin.FAMILY_AUTO_BUILD, null);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
         try {
             // Ensure MavenExecutionRequestPopulator and other Plexus components are loaded
@@ -122,8 +120,9 @@ public class MavenUpdateProjectAction implements IAction {
             project.refreshLocal(IResource.DEPTH_INFINITE, null);
         } finally {
             if (wasAutoBuilding) {
-                wsDesc.setAutoBuilding(true);
-                ResourcesPlugin.getWorkspace().setDescription(wsDesc);
+                IWorkspaceDescription freshDesc = ResourcesPlugin.getWorkspace().getDescription();
+                freshDesc.setAutoBuilding(true);
+                ResourcesPlugin.getWorkspace().setDescription(freshDesc);
             }
         }
         context.setProgress(100);
