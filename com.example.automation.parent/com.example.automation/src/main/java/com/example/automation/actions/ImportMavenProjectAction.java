@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Queue;
 
 import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -98,10 +99,17 @@ public class ImportMavenProjectAction implements IAction {
         // Without this, M2EUtils.createFolder() → IFolder.create() throws
         // "resource already exists" for projects that were previously imported.
         ResourcesPlugin.getWorkspace().getRoot().refreshLocal(IResource.DEPTH_INFINITE, null);
-        MavenPlugin.getProjectConfigurationManager().importProjects(
-            allModules,
-            new ProjectImportConfiguration(),
-            new ImportMonitor(context, allModules.size()));
+        // Wrap in AVOID_UPDATE so that creating 77 projects fires ONE batched resource-change
+        // notification after importProjects returns rather than one per project. Without this,
+        // ProjectRegistryRefreshJob is triggered for each project independently and the
+        // concurrent runs race on the mutable project registry, producing "Unable to update
+        // maven configuration" error dialogs.
+        ResourcesPlugin.getWorkspace().run(
+            mon -> MavenPlugin.getProjectConfigurationManager().importProjects(
+                allModules,
+                new ProjectImportConfiguration(),
+                new ImportMonitor(context, allModules.size())),
+            null, IWorkspace.AVOID_UPDATE, new NullProgressMonitor());
         // Wait for M2E background project-configuration jobs (UpdateProjectJob)
         // These are scheduled inside importProjects() and run after it returns.
         IJobManager jm = Job.getJobManager();
