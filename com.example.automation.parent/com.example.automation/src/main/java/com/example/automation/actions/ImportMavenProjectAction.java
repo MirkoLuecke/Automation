@@ -104,6 +104,12 @@ public class ImportMavenProjectAction implements IAction {
             Thread.currentThread().interrupt();
         }
         ResourcesPlugin.getWorkspace().getRoot().refreshLocal(IResource.DEPTH_INFINITE, null);
+        // Wait for Eclipse's automatic build (Maven Project Builder runs after M2E configures projects).
+        try {
+            jm.join(ResourcesPlugin.FAMILY_AUTO_BUILD, null);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
         context.setProgress(100);
     }
 

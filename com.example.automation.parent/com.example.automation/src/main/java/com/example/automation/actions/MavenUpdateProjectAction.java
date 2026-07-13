@@ -9,6 +9,8 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Platform;
+import org.eclipse.core.runtime.jobs.IJobManager;
+import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.m2e.core.MavenPlugin;
 import org.eclipse.m2e.core.project.MavenUpdateRequest;
 import org.osgi.framework.Bundle;
@@ -62,7 +64,18 @@ public class MavenUpdateProjectAction implements IAction {
         MavenPlugin.getProjectConfigurationManager().updateProjectConfiguration(
             new MavenUpdateRequest(project, false, false),
             new NullProgressMonitor());
+        IJobManager jm = Job.getJobManager();
+        try {
+            jm.join(MavenPlugin.getProjectConfigurationManager(), null);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
         project.refreshLocal(IResource.DEPTH_INFINITE, null);
+        try {
+            jm.join(ResourcesPlugin.FAMILY_AUTO_BUILD, null);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
         context.setProgress(100);
     }
 }
