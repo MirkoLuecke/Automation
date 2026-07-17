@@ -68,6 +68,7 @@ public class GitBranchComboEditorTest {
             Shell shell = new Shell(Display.getDefault(), SWT.NONE);
             shell.open();
             GitBranchComboEditor editor = new GitBranchComboEditor(shell, () -> "");
+            editor.setFocus();
             found[0] = Arrays.asList(((CCombo) editor.getControl()).getItems())
                              .contains("(configure repoDir first)");
             shell.dispose();
@@ -84,6 +85,7 @@ public class GitBranchComboEditorTest {
             shell.open();
             GitBranchComboEditor editor = new GitBranchComboEditor(shell,
                 () -> plain.getAbsolutePath());
+            editor.setFocus();
             found[0] = Arrays.asList(((CCombo) editor.getControl()).getItems())
                              .contains("(no remote branches found)");
             shell.dispose();
@@ -92,16 +94,37 @@ public class GitBranchComboEditorTest {
     }
 
     @Test
-    public void combo_populatedWithoutExplicitSetFocus() {
-        boolean[] hasItems = {false};
+    public void combo_emptyAtCreation_populatedOnSetFocus() {
+        boolean[] emptyAtCreation = {false};
+        boolean[] hasItemsAfterFocus = {false};
         Display.getDefault().syncExec(() -> {
             Shell shell = new Shell(Display.getDefault(), SWT.NONE);
             shell.open();
             GitBranchComboEditor editor = new GitBranchComboEditor(shell, () -> "");
-            hasItems[0] = ((CCombo) editor.getControl()).getItemCount() > 0;
+            emptyAtCreation[0] = ((CCombo) editor.getControl()).getItemCount() == 0;
+            editor.setFocus();
+            hasItemsAfterFocus[0] = ((CCombo) editor.getControl()).getItemCount() > 0;
             shell.dispose();
         });
-        assertTrue("Combo must have items without calling setFocus()", hasItems[0]);
+        assertTrue("Combo must have no items at creation to avoid oversized computeSize()", emptyAtCreation[0]);
+        assertTrue("Combo must have items after setFocus()", hasItemsAfterFocus[0]);
+    }
+
+    @Test
+    public void parseLsRemoteBranches_extractsBranchNames() {
+        String output = "abc123\trefs/heads/main\ndef456\trefs/heads/develop\n";
+        List<String> result = GitBranchComboEditor.parseLsRemoteBranches(output);
+        assertEquals(List.of("develop", "main"), result);
+    }
+
+    @Test
+    public void parseLsRemoteBranches_emptyOutput_returnsEmpty() {
+        assertTrue(GitBranchComboEditor.parseLsRemoteBranches("").isEmpty());
+    }
+
+    @Test
+    public void parseLsRemoteBranches_nullInput_returnsEmpty() {
+        assertTrue(GitBranchComboEditor.parseLsRemoteBranches(null).isEmpty());
     }
 
     @Test

@@ -42,8 +42,8 @@ public class StepPropertySourceTest {
         StepPropertySource s = src(step, reg, saved);
         IPropertyDescriptor[] descs = s.getPropertyDescriptors();
 
-        // action + name + bold = 3 (no config keys for this action)
-        assertEquals(3, descs.length);
+        // action + name + bold + retryOnError + retryWaitSeconds = 5 (no config keys for this action)
+        assertEquals(5, descs.length);
         // Find action descriptor
         IPropertyDescriptor actionDesc = null;
         for (IPropertyDescriptor d : descs) {
@@ -104,8 +104,8 @@ public class StepPropertySourceTest {
 
         IPropertyDescriptor[] descs = src(step, reg, saved).getPropertyDescriptors();
 
-        // action + name + bold + "foo" = 4
-        assertEquals(4, descs.length);
+        // action + name + bold + retryOnError + retryWaitSeconds + "foo" = 6
+        assertEquals(6, descs.length);
         boolean foundFoo = false;
         for (IPropertyDescriptor d : descs) {
             if ("foo".equals(d.getId())) {
