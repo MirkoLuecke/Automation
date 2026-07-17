@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Automation Tests
 Bundle-SymbolicName: com.example.automation.tests
-Bundle-Version: 1.30.0.qualifier
+Bundle-Version: 1.31.0.qualifier
 Require-Bundle: com.example.automation,
  org.eclipse.swtbot.eclipse.finder,
  org.eclipse.ui,

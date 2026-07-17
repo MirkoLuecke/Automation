@@ -41,7 +41,9 @@ public class GitBranchComboEditor extends CellEditor {
     @Override
     protected Control createControl(Composite parent) {
         combo = new CCombo(parent, SWT.NONE);
-        populateItems();
+        // Do NOT call populateItems() here: branch names make computeSize() return a large
+        // preferred width, which the Properties view uses to size the column — pushing the
+        // arrow button off-screen. Items are loaded in doSetFocus() before user interaction.
         combo.addFocusListener(new FocusAdapter() {
             @Override
             public void focusLost(FocusEvent e) {
