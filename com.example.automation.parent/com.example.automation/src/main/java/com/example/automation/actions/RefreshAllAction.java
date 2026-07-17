@@ -8,6 +8,7 @@ import org.eclipse.core.resources.IWorkspaceDescription;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.jobs.IJobManager;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.m2e.core.MavenPlugin;
 
 import com.example.automation.api.IAction;
 import com.example.automation.api.IActionContext;
@@ -48,6 +49,16 @@ public class RefreshAllAction implements IAction {
         }
         try {
             ResourcesPlugin.getWorkspace().getRoot().refreshLocal(IResource.DEPTH_INFINITE, null);
+            // Drain m2e UpdateProjectJobs triggered by refreshLocal(). After the workspace
+            // resource tree is updated, m2e's ProjectRegistryRefreshJob fires and may schedule
+            // UpdateProjectJobs that use TextFileChange. Those must complete while auto-build
+            // is still disabled, or they race with the Java Builder's m2e build participant
+            // on first-time loading of TextFileChange, causing NoClassDefFoundError.
+            try {
+                jm.join(MavenPlugin.getProjectConfigurationManager(), null);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         } finally {
             if (wasAutoBuilding) {
                 IWorkspaceDescription freshDesc = ResourcesPlugin.getWorkspace().getDescription();
