@@ -207,7 +207,9 @@ public class StepPropertySource implements IPropertySource {
                 @Override
                 public org.eclipse.jface.viewers.CellEditor createPropertyEditor(Composite parent) {
                     return new GitBranchComboEditor(parent,
-                        () -> step.getConfig().get("targetDir"), true);
+                        () -> step.getConfig().get("targetDir"),
+                        () -> step.getConfig().get("url"),
+                        true);
                 }
             };
         }

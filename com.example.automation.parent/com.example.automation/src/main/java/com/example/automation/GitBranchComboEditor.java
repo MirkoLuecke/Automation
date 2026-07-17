@@ -24,17 +24,24 @@ import org.eclipse.swt.widgets.Control;
 public class GitBranchComboEditor extends CellEditor {
 
     private final Supplier<String> repoDirSupplier;
+    private final Supplier<String> remoteUrlSupplier;
     private final boolean allowEmpty;
     private CCombo combo;
     private String lastValue = "";
 
     public GitBranchComboEditor(Composite parent, Supplier<String> repoDirSupplier) {
-        this(parent, repoDirSupplier, false);
+        this(parent, repoDirSupplier, null, false);
     }
 
     public GitBranchComboEditor(Composite parent, Supplier<String> repoDirSupplier, boolean allowEmpty) {
-        this.repoDirSupplier = repoDirSupplier;
-        this.allowEmpty = allowEmpty;
+        this(parent, repoDirSupplier, null, allowEmpty);
+    }
+
+    public GitBranchComboEditor(Composite parent, Supplier<String> repoDirSupplier,
+                                 Supplier<String> remoteUrlSupplier, boolean allowEmpty) {
+        this.repoDirSupplier   = repoDirSupplier;
+        this.remoteUrlSupplier = remoteUrlSupplier;
+        this.allowEmpty        = allowEmpty;
         create(parent);
     }
 
@@ -61,7 +68,6 @@ public class GitBranchComboEditor extends CellEditor {
 
     @Override
     protected void doSetFocus() {
-        // Repopulates to pick up new branches since createControl(); accepts two git calls per activation.
         populateItems();
         combo.setFocus();
     }
@@ -100,6 +106,30 @@ public class GitBranchComboEditor extends CellEditor {
     }
 
     private List<String> fetchBranches() {
+        if (remoteUrlSupplier != null) {
+            return fetchBranchesByLsRemote();
+        }
+        return fetchBranchesByLocalRepo();
+    }
+
+    private List<String> fetchBranchesByLsRemote() {
+        String url = remoteUrlSupplier.get();
+        if (url == null || url.isBlank()) return List.of("(configure url first)");
+        try {
+            url = resolveVariable(url);
+            if (url == null) return List.of("(configure url first)");
+            Process proc = new ProcessBuilder("git", "ls-remote", "--heads", url)
+                .start();
+            String output = new String(proc.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            proc.waitFor();
+            List<String> branches = parseLsRemoteBranches(output);
+            return branches.isEmpty() ? List.of("(no remote branches found)") : branches;
+        } catch (Exception e) {
+            return List.of("(no remote branches found)");
+        }
+    }
+
+    private List<String> fetchBranchesByLocalRepo() {
         String repoDir = resolveRepoDir();
         if (repoDir == null) return List.of("(configure repoDir first)");
         try {
@@ -118,9 +148,13 @@ public class GitBranchComboEditor extends CellEditor {
     private String resolveRepoDir() {
         String raw = repoDirSupplier.get();
         if (raw == null || raw.isBlank()) return null;
+        return resolveVariable(raw);
+    }
+
+    private String resolveVariable(String raw) {
         try {
             IStringVariableManager mgr = VariablesPlugin.getDefault().getStringVariableManager();
-            // false = leave undefined variables as literals; they will fail the git call and show the not-found placeholder
+            // false = leave undefined variables as literals so they fail the git call gracefully
             String resolved = mgr.performStringSubstitution(raw, false);
             return resolved.isBlank() ? null : resolved;
         } catch (Exception e) {
@@ -134,6 +168,19 @@ public class GitBranchComboEditor extends CellEditor {
             .map(String::trim)
             .filter(line -> !line.isEmpty() && !line.contains(" -> "))
             .map(line -> { int slash = line.indexOf('/'); return slash >= 0 ? line.substring(slash + 1) : line; })
+            .distinct()
+            .sorted()
+            .collect(Collectors.toList());
+    }
+
+    public static List<String> parseLsRemoteBranches(String gitOutput) {
+        if (gitOutput == null || gitOutput.isBlank()) return List.of();
+        // Format: "<sha>\trefs/heads/<branch>"
+        return Arrays.stream(gitOutput.split("\n"))
+            .map(String::trim)
+            .filter(line -> line.contains("\trefs/heads/"))
+            .map(line -> line.substring(line.indexOf("refs/heads/") + "refs/heads/".length()))
+            .filter(b -> !b.isEmpty())
             .distinct()
             .sorted()
             .collect(Collectors.toList());
