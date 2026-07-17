@@ -19,6 +19,7 @@ import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.IJobManager;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.jobs.JobChangeAdapter;
+import org.eclipse.m2e.core.MavenPlugin;
 import org.eclipse.core.variables.IStringVariableManager;
 import org.eclipse.core.variables.VariablesPlugin;
 
@@ -140,10 +141,22 @@ public class WorkflowJob extends Job {
             Thread.currentThread().interrupt();
         }
         try {
-            ResourcesPlugin.getWorkspace().getRoot()
-                .refreshLocal(IResource.DEPTH_INFINITE, monitor);
-        } catch (CoreException e) {
-            Platform.getLog(WorkflowJob.class).warn("Workspace refresh failed", e);
+            try {
+                ResourcesPlugin.getWorkspace().getRoot()
+                    .refreshLocal(IResource.DEPTH_INFINITE, monitor);
+            } catch (CoreException e) {
+                Platform.getLog(WorkflowJob.class).warn("Workspace refresh failed", e);
+            }
+            // Drain m2e UpdateProjectJobs triggered by refreshLocal(). After the workspace
+            // resource tree is updated, m2e's ProjectRegistryRefreshJob fires and may schedule
+            // UpdateProjectJobs that use TextFileChange. Those must complete while auto-build
+            // is still disabled, or they race with the Java Builder's m2e build participant
+            // on first-time loading of TextFileChange, causing NoClassDefFoundError.
+            try {
+                jm.join(MavenPlugin.getProjectConfigurationManager(), null);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         } finally {
             if (wasAutoBuilding) {
                 try {

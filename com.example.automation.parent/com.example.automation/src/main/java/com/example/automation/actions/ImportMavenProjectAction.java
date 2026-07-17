@@ -152,6 +152,15 @@ public class ImportMavenProjectAction implements IAction {
                         facade.getComponentLookup();
                 }
             }, ResourcesPlugin.getWorkspace().getRoot(), 0, new NullProgressMonitor());
+            // Drain any UpdateProjectJobs that ProjectRegistryRefreshJob scheduled in response
+            // to the refreshLocal() inside the workspace run above. Those jobs use TextFileChange
+            // and must finish while auto-build is still disabled, or they race with the Java
+            // Builder's m2e build participant on first-time loading of TextFileChange.
+            try {
+                jm.join(MavenPlugin.getProjectConfigurationManager(), null);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         } finally {
             if (wasAutoBuilding) {
                 IWorkspaceDescription freshDesc = ResourcesPlugin.getWorkspace().getDescription();
