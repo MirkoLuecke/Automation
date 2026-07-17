@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IWorkspaceDescription;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -15,6 +16,7 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
+import org.eclipse.core.runtime.jobs.IJobManager;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.jobs.JobChangeAdapter;
 import org.eclipse.core.variables.IStringVariableManager;
@@ -117,11 +119,46 @@ public class WorkflowJob extends Job {
     }
 
     private void refreshWorkspace(IProgressMonitor monitor) {
+        // Disable auto-build before refreshLocal() so that detecting filesystem changes
+        // (e.g. files written by an external mvn process) does not trigger concurrent
+        // Maven Project Builder jobs for every module — those race on Plexus classloading
+        // and produce TextFileChange NoClassDefFoundError dialogs (one per module).
+        IJobManager jm = Job.getJobManager();
+        IWorkspaceDescription wsDesc = ResourcesPlugin.getWorkspace().getDescription();
+        boolean wasAutoBuilding = wsDesc.isAutoBuilding();
+        if (wasAutoBuilding) {
+            try {
+                wsDesc.setAutoBuilding(false);
+                ResourcesPlugin.getWorkspace().setDescription(wsDesc);
+            } catch (CoreException e) {
+                Platform.getLog(WorkflowJob.class).warn("Could not disable auto-build before workspace refresh", e);
+            }
+        }
+        try {
+            jm.join(ResourcesPlugin.FAMILY_AUTO_BUILD, null);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
         try {
             ResourcesPlugin.getWorkspace().getRoot()
                 .refreshLocal(IResource.DEPTH_INFINITE, monitor);
         } catch (CoreException e) {
             Platform.getLog(WorkflowJob.class).warn("Workspace refresh failed", e);
+        } finally {
+            if (wasAutoBuilding) {
+                try {
+                    IWorkspaceDescription freshDesc = ResourcesPlugin.getWorkspace().getDescription();
+                    freshDesc.setAutoBuilding(true);
+                    ResourcesPlugin.getWorkspace().setDescription(freshDesc);
+                } catch (CoreException e) {
+                    Platform.getLog(WorkflowJob.class).warn("Could not re-enable auto-build after workspace refresh", e);
+                }
+            }
+        }
+        try {
+            jm.join(ResourcesPlugin.FAMILY_AUTO_BUILD, null);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 
